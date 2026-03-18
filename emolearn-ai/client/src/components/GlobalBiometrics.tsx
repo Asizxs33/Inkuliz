@@ -32,8 +32,15 @@ function loadMediaPipe(): Promise<void> {
 // Singleton emotion detector
 const emotionDetector = new EmotionDetector()
 
+function createMutedVideo() {
+  const v = document.createElement('video')
+  v.muted = true
+  v.playsInline = true
+  return v
+}
+
 export default function GlobalBiometrics() {
-  const videoRef = useRef<HTMLVideoElement>(document.createElement('video'))
+  const videoRef = useRef<HTMLVideoElement>(createMutedVideo())
   const handsRef = useRef<any>(null)
   const rafRef = useRef<number>(0)
   const streamRef = useRef<MediaStream | null>(null)
