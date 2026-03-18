@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { generateSentenceFromWords } from '../services/openaiService.js'
 
 export const signLanguageRouter = Router()
 
@@ -33,12 +34,11 @@ signLanguageRouter.post('/sentence', async (req, res) => {
       return res.json({ sentence: '' })
     }
 
-    const { generateSentenceFromWords } = await import('../services/openaiService')
     const sentence = await generateSentenceFromWords(words)
     
     res.json({ sentence })
   } catch (error) {
     console.error('Error generating sentence:', error)
-    res.status(500).json({ error: 'internal server error' })
+    res.status(500).json({ error: 'internal server error', details: error instanceof Error ? error.message : String(error) })
   }
 })

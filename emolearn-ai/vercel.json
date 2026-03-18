@@ -17,6 +17,10 @@
       "destination": "server/src/index.ts"
     },
     {
+      "source": "/socket.io/(.*)",
+      "destination": "server/src/index.ts"
+    },
+    {
       "source": "/(.*)",
       "destination": "client/$1"
     }
