@@ -75,33 +75,28 @@ export default function Dictionary() {
   }, [isPlaying, playbackIndex, playbackSequence])
 
   return (
-    <div className="flex gap-6 animate-fade-in h-full">
-      {/* Left Sidebar */}
-      <div className="w-[200px] shrink-0">
-        <div className="flex items-center gap-2 mb-6">
-          <div className="w-8 h-8 rounded-lg bg-plum flex items-center justify-center">
-            <Hand size={16} className="text-white" />
-          </div>
-          <div>
-            <h3 className="font-bold text-text-primary text-sm">EmoLearn AI</h3>
-            <p className="text-xs text-rose font-medium">SIGN LANGUAGE</p>
-          </div>
+    <div className="flex flex-col lg:flex-row gap-6 animate-fade-in h-full">
+      {/* Sidebar (Categories) */}
+      <div className="w-full lg:w-64 shrink-0 flex flex-col gap-4">
+        <h2 className="text-xl font-extrabold text-text-primary uppercase tracking-wider hidden lg:block">КАТЕГОРИЯЛАР</h2>
+        <div className="flex lg:flex-col gap-2 overflow-x-auto pb-2 lg:pb-0 hide-scrollbar justify-start">
+          {categories.map((cat, idx) => {
+            const Icon = cat.icon
+            return (
+              <button
+                key={idx}
+                className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl transition-all font-bold shrink-0 lg:shrink max-w-fit lg:max-w-full ${
+                  cat.active 
+                    ? 'bg-gradient-to-r from-plum to-rose text-white shadow-lg shadow-plum/20' 
+                    : 'bg-bg-secondary text-text-muted hover:bg-white/5 hover:text-text-primary'
+                }`}
+              >
+                <Icon size={18} />
+                <span className="text-sm">{cat.label}</span>
+              </button>
+            )
+          })}
         </div>
-        <nav className="flex flex-col gap-1">
-          {categories.map((cat) => (
-            <button
-              key={cat.label}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-                cat.active
-                  ? 'bg-gradient-to-r from-plum to-rose text-white'
-                  : 'text-text-secondary hover:bg-plum-pale hover:text-plum'
-              }`}
-            >
-              <cat.icon size={18} />
-              {cat.label}
-            </button>
-          ))}
-        </nav>
 
         {/* Progress */}
         <div className="mt-auto pt-8">
@@ -151,7 +146,7 @@ export default function Dictionary() {
             <Languages size={18} className="text-rose" />
             <span className="text-sm font-bold text-text-muted uppercase">МӘТІННЕН ҚИМЫЛҒА</span>
           </div>
-          <div className="flex gap-2 mb-4">
+          <div className="flex flex-col sm:flex-row gap-2 mb-4">
             <input
               type="text"
               value={textInput}
@@ -164,7 +159,7 @@ export default function Dictionary() {
             <button
               onClick={handleTranslateToGesture}
               disabled={!textInput.trim() || isPlaying}
-              className="px-6 py-3 bg-gradient-to-r from-plum to-rose text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center min-w-[120px]"
+              className="px-6 py-3 bg-gradient-to-r from-plum to-rose text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center min-w-[120px] w-full sm:w-auto"
             >
               {isPlaying ? <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : 'Аудару'}
             </button>
@@ -214,27 +209,36 @@ export default function Dictionary() {
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="grid grid-cols-[1fr_1fr] gap-0 rounded-xl overflow-hidden card p-0"
+          transition={{ delay: 0.1 }}
+          className="card bg-gradient-to-br from-plum/10 to-rose/10 border-none relative overflow-hidden"
         >
-          {/* Hand image placeholder */}
-          <div className="bg-[#B8D8D0] flex items-center justify-center p-10 min-h-[300px]">
-            <Hand size={120} className="text-[#E8A88B]" />
+          <div className="absolute top-0 right-0 p-6 opacity-10">
+            <Hand size={120} />
           </div>
-          {/* Word info */}
-          <div className="p-8 flex flex-col justify-center">
-            <span className="inline-block bg-rose-pale text-rose text-xs font-bold px-3 py-1 rounded-full mb-3 w-fit">КҮН СӨЗІ</span>
-            <h2 className="text-3xl font-extrabold text-text-primary mb-2">RAKHMET (Рақмет)</h2>
-            <p className="text-text-secondary text-sm leading-relaxed mb-5">
-              Күнделікті қолданылатын ең маңызды ым-ишара. Ризашылық білдіру үшін қолданылады.
-            </p>
-            <div className="flex gap-3">
-              <button className="btn-primary px-6 py-3 flex items-center gap-2 font-bold">
-                <Play size={16} />
-                Көру
-              </button>
-              <button className="px-6 py-3 border border-border-soft rounded-xl text-text-secondary font-bold text-sm hover:border-plum hover:text-plum transition-colors">
-                Сақтау
-              </button>
+          <p className="text-xs font-bold text-plum uppercase tracking-widest mb-4">КҮННІҢ СӨЗІ</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            <div>
+              <h1 className="text-5xl font-black text-text-primary mb-2">Шака</h1>
+              <p className="text-text-muted mb-4 uppercase text-sm tracking-wide">SHAKA (Алоха / Сәлем)</p>
+              <div className="flex gap-2 flex-wrap">
+                <span className="inline-block bg-rose-pale text-rose text-xs font-bold px-3 py-1 rounded-full">КҮН СӨЗІ</span>
+                <span className="inline-block bg-rose-pale text-rose text-xs font-bold px-3 py-1 rounded-full">ЖАҢА</span>
+              </div>
+              <p className="text-text-secondary text-sm leading-relaxed mt-4 mb-5">
+                Күнделікті қолданылатын ең маңызды ым-ишара. Ризашылық білдіру үшін қолданылады.
+              </p>
+              <div className="flex gap-3">
+                <button className="btn-primary px-6 py-3 flex items-center gap-2 font-bold">
+                  <Play size={16} />
+                  Көру
+                </button>
+                <button className="px-6 py-3 border border-border-soft rounded-xl text-text-secondary font-bold text-sm hover:border-plum hover:text-plum transition-colors">
+                  Сақтау
+                </button>
+              </div>
+            </div>
+            <div className="bg-[#B8D8D0] flex items-center justify-center p-10 min-h-[300px] rounded-xl">
+              <Hand size={120} className="text-[#E8A88B]" />
             </div>
           </div>
         </motion.div>
@@ -247,7 +251,7 @@ export default function Dictionary() {
             </h3>
             <span className="text-sm font-bold text-rose cursor-pointer hover:text-plum transition-colors">Барлығын көру</span>
           </div>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {words.map((word, i) => (
               <motion.div
                 key={word.word_kz}

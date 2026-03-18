@@ -281,7 +281,7 @@ export default function SignLanguage() {
   const confidence = Math.round(gestureResult.confidence * 100)
 
   return (
-    <div className={`grid gap-6 animate-fade-in ${isInLiveRoom ? 'grid-cols-[1fr_350px]' : 'grid-cols-1 max-w-4xl mx-auto'}`}>
+    <div className={`grid gap-6 animate-fade-in ${isInLiveRoom ? 'grid-cols-1 lg:grid-cols-[1fr_350px]' : 'grid-cols-1 max-w-4xl mx-auto'}`}>
       {/* ── LEFT PANEL ── */}
       <div className="flex flex-col gap-4">
 
@@ -478,7 +478,7 @@ export default function SignLanguage() {
 
       {/* ── LIVE CHAT PANEL ── */}
       {isInLiveRoom && (
-        <div className="flex flex-col gap-4 border-l border-white/5 pl-6 h-[calc(100vh-120px)]">
+        <div className="flex flex-col gap-4 lg:border-l border-t lg:border-t-0 border-white/5 lg:pl-6 pt-6 lg:pt-0 h-[600px] lg:h-[calc(100vh-120px)]">
           <div className="flex items-center justify-between mb-2">
              <div className="flex items-center gap-2">
                <div className="w-2.5 h-2.5 bg-success rounded-full animate-pulse" />
