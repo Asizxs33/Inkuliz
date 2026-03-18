@@ -44,12 +44,10 @@ app.get('/api/health', (_req, res) => {
 // Socket.IO
 setupSocket(io)
 
-// For Vercel, we export the app. For local dev, we start the server.
+// Start server on all environments since Render needs it
 const PORT = process.env.PORT || 3001
-if (process.env.NODE_ENV !== 'production') {
-  httpServer.listen(PORT, () => {
-    console.log(`🚀 EmoLearn AI Server running on port ${PORT}`)
-  })
-}
+httpServer.listen(PORT, () => {
+  console.log(`🚀 EmoLearn AI Server running on port ${PORT}`)
+})
 
 export default app
