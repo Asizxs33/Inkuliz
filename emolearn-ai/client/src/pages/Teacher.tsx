@@ -40,7 +40,7 @@ export default function Teacher() {
     if (!teacherId) return
     const fetchClasses = async () => {
       try {
-        const res = await fetch(`/api/classes/${teacherId}`)
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/${teacherId}`)
         const data = await res.json()
         if (data.classes?.length > 0) {
           setClasses(data.classes)
@@ -58,7 +58,7 @@ export default function Teacher() {
     if (!activeClass) return
     const fetchStudents = async () => {
       try {
-        const res = await fetch(`/api/classes/${activeClass.id}/students`)
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/${activeClass.id}/students`)
         const data = await res.json()
         const mapped = data.students.map((s: any) => ({
           ...s,
@@ -110,7 +110,7 @@ export default function Teacher() {
     if (!newClassName.trim() || isCreating) return
     setIsCreating(true)
     try {
-      const res = await fetch('/api/classes/create', {
+      const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/classes/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ teacher_id: teacherId, name: newClassName })
@@ -140,7 +140,7 @@ export default function Teacher() {
     if (!message.trim() || isSending) return
     setIsSending(true)
     try {
-      const res = await fetch('/api/telegram/send', {
+      const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/telegram/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: `📣 Мұғалімнің хабарламасы (${activeClass?.name || ''}):\n\n${message}` })

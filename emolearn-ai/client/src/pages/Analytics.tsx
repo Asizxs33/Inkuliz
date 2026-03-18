@@ -55,7 +55,7 @@ export default function Analytics() {
 
     const fetchAnalytics = async () => {
       try {
-        const res = await fetch(`/api/analytics/overview/${userId}`)
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/analytics/overview/${userId}`)
         if (!res.ok) return
         const data = await res.json()
 

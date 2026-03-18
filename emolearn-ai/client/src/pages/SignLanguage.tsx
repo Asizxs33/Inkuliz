@@ -155,7 +155,7 @@ export default function SignLanguage() {
     const timer = setTimeout(async () => {
       setIsGenerating(true)
       try {
-        const response = await fetch('/api/sign-language/sentence', {
+        const response = await fetch((import.meta.env.VITE_API_URL || '') + '/api/sign-language/sentence', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ words: history })

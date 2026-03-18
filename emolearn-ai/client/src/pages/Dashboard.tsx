@@ -54,7 +54,7 @@ export default function Dashboard() {
       lastData = { bpm, cognitive }
       setIsAnalyzing(true)
       try {
-        const res = await fetch('/api/chat/analyze', {
+        const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/chat/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -123,7 +123,7 @@ export default function Dashboard() {
               const code = input.value;
               if (!code) return;
               try {
-                const res = await fetch('/api/classes/join', {
+                const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/classes/join', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ 
