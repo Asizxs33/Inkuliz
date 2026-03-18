@@ -1,13 +1,23 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Home, GraduationCap, Hash, Palette, Users, Play, Bookmark, Hand, Grid3X3, Languages, CheckCircle2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { DICTIONARY_DATA, DICTIONARY_CATEGORIES } from '../lib/dictionaryData'
+import { DICTIONARY_DATA, DICTIONARY_CATEGORIES, DictionaryWord } from '../lib/dictionaryData'
 
 const difficultyTabs = ['Барлығы', 'ОҢАЙ', 'ОРТАША', 'ҚИЫН']
 
 const getIcon = (name: string) => {
   const icons: any = { Home, GraduationCap, Hash, Palette, Users, Grid3X3 }
   return icons[name] || Grid3X3
+}
+
+const getAnimationProps = (anim?: string) => {
+  switch (anim) {
+    case 'wave': return { animate: { rotate: [0, 20, -15, 20, -15, 0] }, transition: { duration: 1.5, repeat: Infinity } }
+    case 'bounce': return { animate: { y: [0, -15, 0] }, transition: { duration: 1, repeat: Infinity } }
+    case 'pulse': return { animate: { scale: [1, 1.15, 1] }, transition: { duration: 1, repeat: Infinity } }
+    case 'shake': return { animate: { x: [0, -10, 10, -10, 10, 0] }, transition: { duration: 0.5, repeat: Infinity } }
+    default: return { animate: { scale: [0.9, 1] }, transition: { duration: 1 } }
+  }
 }
 
 export default function Dictionary() {
@@ -25,21 +35,31 @@ export default function Dictionary() {
   // Translator states
   const [textInput, setTextInput] = useState('')
   const [isPlaying, setIsPlaying] = useState(false)
-  const [playbackSequence, setPlaybackSequence] = useState<{ word: string, gesture: string }[]>([])
+  const [playbackSequence, setPlaybackSequence] = useState<DictionaryWord[]>([])
   const [playbackIndex, setPlaybackIndex] = useState(0)
 
   const handleTranslateToGesture = (overrideText?: string) => {
     const textToTranslate = overrideText || textInput
     if (!textToTranslate.trim()) return
     const ws = textToTranslate.toUpperCase().split(/\s+/)
-    const sequence: { word: string, gesture: string }[] = []
+    const sequence: DictionaryWord[] = []
 
     ws.forEach(w => {
       const found = DICTIONARY_DATA.find(kw => kw.wordKz.toUpperCase() === w || w.includes(kw.wordKz.toUpperCase()))
       if (found) {
-        sequence.push({ word: found.wordKz, gesture: found.gesture })
+        sequence.push(found)
       } else {
-        sequence.push({ word: w, gesture: 'БЕЛГІСІЗ' })
+        sequence.push({ 
+          id: Date.now().toString() + Math.random(), 
+          wordKz: w, 
+          gesture: 'БЕЛГІСІЗ', 
+          transliteration: '', 
+          category: 'unknown', 
+          difficulty: 'ОҢАЙ', 
+          color: '#9ca3af', 
+          description: '', 
+          emoji: '❓' 
+        })
       }
     })
 
@@ -174,11 +194,19 @@ export default function Dictionary() {
                   exit={{ opacity: 0, scale: 1.1 }}
                   className="flex flex-col items-center gap-2"
                 >
-                  <div className="w-20 h-20 rounded-2xl bg-plum flex items-center justify-center text-white shadow-lg shadow-plum/30">
-                    {playbackSequence[playbackIndex].gesture !== 'БЕЛГІСІЗ' ? <Hand size={40} /> : <span className="text-3xl font-bold">?</span>}
+                  <div className="w-24 h-24 rounded-3xl bg-white border-2 border-plum/20 shadow-xl flex items-center justify-center relative overflow-hidden">
+                    {playbackSequence[playbackIndex].gesture !== 'БЕЛГІСІЗ' ? (
+                      <motion.div 
+                        animate={getAnimationProps(playbackSequence[playbackIndex].animation).animate}
+                        transition={getAnimationProps(playbackSequence[playbackIndex].animation).transition}
+                        className="text-6xl drop-shadow-md"
+                      >
+                        {playbackSequence[playbackIndex].emoji}
+                      </motion.div>
+                    ) : <span className="text-4xl font-bold text-text-muted">?</span>}
                   </div>
-                  <p className="text-text-primary font-bold text-xl">{playbackSequence[playbackIndex].word}</p>
-                  <p className="text-plum font-medium text-sm bg-white px-4 py-1.5 rounded-full">{playbackSequence[playbackIndex].gesture}</p>
+                  <p className="text-text-primary font-black text-2xl tracking-wide">{playbackSequence[playbackIndex].wordKz}</p>
+                  <p className="text-plum font-bold text-sm bg-plum/10 border border-plum/20 px-5 py-2 rounded-full">{playbackSequence[playbackIndex].gesture}</p>
                 </motion.div>
               </AnimatePresence>
             ) : isPlaying && playbackIndex >= playbackSequence.length ? (
