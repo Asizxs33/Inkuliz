@@ -1,38 +1,26 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Home, GraduationCap, Hash, Palette, Users, Play, Bookmark, Hand, Grid3X3, Languages, CheckCircle2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { DICTIONARY_DATA, DICTIONARY_CATEGORIES } from '../lib/dictionaryData'
 
-const categories = [
-  { icon: Home, label: 'Негізгі', active: true },
-  { icon: GraduationCap, label: 'Мектеп', active: false },
-  { icon: Hash, label: 'Сандар', active: false },
-  { icon: Palette, label: 'Түстер', active: false },
-  { icon: Users, label: 'Отбасы', active: false },
-]
+const difficultyTabs = ['Барлығы', 'ОҢАЙ', 'ОРТАША', 'ҚИЫН']
 
-const filterTabs = ['Барлығы', 'Сәлем', 'Сан', 'Күн']
-
-const words = [
-  { word_kz: 'Сәлем', transliteration: 'Salem (Сәлем)', difficulty: 'ОҢАЙ', color: '#10B981' },
-  { word_kz: 'Ана', transliteration: 'Ana (Ана)', difficulty: 'ОРТАША', color: '#F59E0B' },
-  { word_kz: 'Кітап', transliteration: 'Kitap (Кітап)', difficulty: 'ОҢАЙ', color: '#10B981' },
-  { word_kz: 'Бір', transliteration: 'Bir (Бір)', difficulty: 'ҚИЫН', color: '#EF4444' },
-]
-
-const KNOWN_WORDS = [
-  { word: 'СӘЛЕМ', gesture: 'Ашық алақан' },
-  { word: 'ЖАҚСЫ', gesture: 'Бас бармақ жоғары' },
-  { word: 'РАХМЕТ', gesture: 'OK белгісі' },
-  { word: 'МЕН', gesture: 'Сұқ саусақ' },
-  { word: 'СІЗ', gesture: 'V белгісі' },
-  { word: 'СҮЙЕМІН', gesture: 'ILY белгісі' },
-  { word: 'СТОП', gesture: 'Жұдырық' },
-  { word: 'ТЕЛЕФОН', gesture: 'Шака белгісі' },
-]
+const getIcon = (name: string) => {
+  const icons: any = { Home, GraduationCap, Hash, Palette, Users, Grid3X3 }
+  return icons[name] || Grid3X3
+}
 
 export default function Dictionary() {
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeFilter, setActiveFilter] = useState('Барлығы')
+  const [activeCategory, setActiveCategory] = useState('all')
+  const [activeDifficulty, setActiveDifficulty] = useState('Барлығы')
+  
+  // Word of the day
+  const [wordOfTheDay, setWordOfTheDay] = useState(DICTIONARY_DATA[0])
+  useEffect(() => {
+    // Pick random WOTD on mount
+    setWordOfTheDay(DICTIONARY_DATA[Math.floor(Math.random() * DICTIONARY_DATA.length)])
+  }, [])
   
   // Translator states
   const [textInput, setTextInput] = useState('')
@@ -40,21 +28,23 @@ export default function Dictionary() {
   const [playbackSequence, setPlaybackSequence] = useState<{ word: string, gesture: string }[]>([])
   const [playbackIndex, setPlaybackIndex] = useState(0)
 
-  const handleTranslateToGesture = () => {
-    if (!textInput.trim()) return
-    const ws = textInput.toUpperCase().split(/\s+/)
+  const handleTranslateToGesture = (overrideText?: string) => {
+    const textToTranslate = overrideText || textInput
+    if (!textToTranslate.trim()) return
+    const ws = textToTranslate.toUpperCase().split(/\s+/)
     const sequence: { word: string, gesture: string }[] = []
 
     ws.forEach(w => {
-      const found = KNOWN_WORDS.find(kw => kw.word === w || w.includes(kw.word))
+      const found = DICTIONARY_DATA.find(kw => kw.wordKz.toUpperCase() === w || w.includes(kw.wordKz.toUpperCase()))
       if (found) {
-        sequence.push(found)
+        sequence.push({ word: found.wordKz, gesture: found.gesture })
       } else {
         sequence.push({ word: w, gesture: 'БЕЛГІСІЗ' })
       }
     })
 
     if (sequence.length > 0) {
+      if (overrideText) setTextInput(overrideText)
       setPlaybackSequence(sequence)
       setPlaybackIndex(0)
       setIsPlaying(true)
@@ -74,19 +64,28 @@ export default function Dictionary() {
     return () => clearTimeout(timer)
   }, [isPlaying, playbackIndex, playbackSequence])
 
+  const filteredWords = DICTIONARY_DATA.filter(w => {
+    const matchesCategory = activeCategory === 'all' || w.category === activeCategory
+    const matchesDifficulty = activeDifficulty === 'Барлығы' || w.difficulty === activeDifficulty
+    const matchesSearch = w.wordKz.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          w.transliteration.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesCategory && matchesDifficulty && matchesSearch
+  })
+
   return (
     <div className="flex flex-col lg:flex-row gap-6 animate-fade-in h-full">
       {/* Sidebar (Categories) */}
       <div className="w-full lg:w-64 shrink-0 flex flex-col gap-4">
         <h2 className="text-xl font-extrabold text-text-primary uppercase tracking-wider hidden lg:block">КАТЕГОРИЯЛАР</h2>
         <div className="flex lg:flex-col gap-2 overflow-x-auto pb-2 lg:pb-0 hide-scrollbar justify-start">
-          {categories.map((cat, idx) => {
-            const Icon = cat.icon
+          {DICTIONARY_CATEGORIES.map((cat) => {
+            const Icon = getIcon(cat.iconName)
             return (
               <button
-                key={idx}
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
                 className={`w-full flex items-center justify-start gap-3 px-4 py-3 rounded-xl transition-all font-bold shrink-0 lg:shrink max-w-fit lg:max-w-full ${
-                  cat.active 
+                  activeCategory === cat.id 
                     ? 'bg-gradient-to-r from-plum to-rose text-white shadow-lg shadow-plum/20' 
                     : 'bg-bg-secondary text-text-muted hover:bg-white/5 hover:text-text-primary'
                 }`}
@@ -102,12 +101,12 @@ export default function Dictionary() {
         <div className="mt-auto pt-8">
           <div className="flex justify-between text-sm mb-2">
             <span className="text-text-secondary font-medium">Оқу барысы</span>
-            <span className="text-rose font-bold">47%</span>
+            <span className="text-rose font-bold">{Math.round((12 / DICTIONARY_DATA.length) * 100)}%</span>
           </div>
           <div className="w-full h-2 bg-plum-pale rounded-full">
-            <div className="h-full bg-gradient-to-r from-plum to-rose rounded-full" style={{ width: '47%' }} />
+            <div className="h-full bg-gradient-to-r from-plum to-rose rounded-full" style={{ width: `${Math.round((12 / DICTIONARY_DATA.length) * 100)}%` }} />
           </div>
-          <p className="text-xs text-text-muted mt-1">47 сөз үйрендіңіз</p>
+          <p className="text-xs text-text-muted mt-1">12 сөз үйрендіңіз</p>
         </div>
       </div>
 
@@ -125,12 +124,12 @@ export default function Dictionary() {
               className="w-full pl-11 pr-4 py-3 rounded-xl border border-border-soft bg-white text-text-primary focus:outline-none focus:border-rose focus:ring-2 focus:ring-rose/20 text-sm"
             />
           </div>
-          {filterTabs.map((tab) => (
+          {difficultyTabs.map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveFilter(tab)}
-              className={`px-5 py-3 rounded-xl text-sm font-bold transition-all ${
-                activeFilter === tab
+              onClick={() => setActiveDifficulty(tab)}
+              className={`px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+                activeDifficulty === tab
                   ? 'bg-rose text-white'
                   : 'border border-border-soft text-text-secondary hover:border-plum hover:text-plum'
               }`}
@@ -151,13 +150,13 @@ export default function Dictionary() {
               type="text"
               value={textInput}
               onChange={(e: any) => setTextInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleTranslateToGesture()}
+              onKeyDown={(e) => e.key === 'Enter' && handleTranslateToGesture(textInput)}
               placeholder="Сөз енгізіңіз... (мысалы: Сәлем, Рахмет)"
               className="flex-1 px-4 py-3 rounded-xl border border-border-soft bg-white text-text-primary focus:outline-none focus:border-rose focus:ring-2 focus:ring-rose/20 text-sm"
               disabled={isPlaying}
             />
             <button
-              onClick={handleTranslateToGesture}
+              onClick={() => handleTranslateToGesture(textInput)}
               disabled={!textInput.trim() || isPlaying}
               className="px-6 py-3 bg-gradient-to-r from-plum to-rose text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center min-w-[120px] w-full sm:w-auto"
             >
@@ -218,17 +217,20 @@ export default function Dictionary() {
           <p className="text-xs font-bold text-plum uppercase tracking-widest mb-4">КҮННІҢ СӨЗІ</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
             <div>
-              <h1 className="text-5xl font-black text-text-primary mb-2">Шака</h1>
-              <p className="text-text-muted mb-4 uppercase text-sm tracking-wide">SHAKA (Алоха / Сәлем)</p>
+              <h1 className="text-5xl font-black text-text-primary mb-2">{wordOfTheDay.wordKz}</h1>
+              <p className="text-text-muted mb-4 uppercase text-sm tracking-wide">{wordOfTheDay.transliteration}</p>
               <div className="flex gap-2 flex-wrap">
                 <span className="inline-block bg-rose-pale text-rose text-xs font-bold px-3 py-1 rounded-full">КҮН СӨЗІ</span>
-                <span className="inline-block bg-rose-pale text-rose text-xs font-bold px-3 py-1 rounded-full">ЖАҢА</span>
+                <span className="inline-block bg-white text-xs font-bold px-3 py-1 rounded-full shadow-sm" style={{ color: wordOfTheDay.color }}>{wordOfTheDay.difficulty}</span>
               </div>
               <p className="text-text-secondary text-sm leading-relaxed mt-4 mb-5">
-                Күнделікті қолданылатын ең маңызды ым-ишара. Ризашылық білдіру үшін қолданылады.
+                {wordOfTheDay.description}
               </p>
               <div className="flex gap-3">
-                <button className="btn-primary px-6 py-3 flex items-center gap-2 font-bold">
+                <button 
+                  onClick={() => { handleTranslateToGesture(wordOfTheDay.wordKz); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                  className="btn-primary px-6 py-3 flex items-center gap-2 font-bold"
+                >
                   <Play size={16} />
                   Көру
                 </button>
@@ -252,12 +254,12 @@ export default function Dictionary() {
             <span className="text-sm font-bold text-rose cursor-pointer hover:text-plum transition-colors">Барлығын көру</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {words.map((word, i) => (
+            {filteredWords.length > 0 ? filteredWords.map((word, i) => (
               <motion.div
-                key={word.word_kz}
+                key={word.id}
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1 * i }}
+                transition={{ delay: 0.1 * Math.min(i, 10) }}
                 whileHover={{ y: -4 }}
                 className="card cursor-pointer hover:shadow-lg transition-all p-0 overflow-hidden"
               >
@@ -273,14 +275,19 @@ export default function Dictionary() {
                   </span>
                 </div>
                 <div className="p-4">
-                  <h4 className="font-bold text-text-primary">{word.word_kz}</h4>
+                  <h4 className="font-bold text-text-primary">{word.wordKz}</h4>
                   <p className="text-xs text-text-muted">{word.transliteration}</p>
-                  <button className="w-full mt-3 py-2 border border-rose text-rose rounded-lg text-sm font-bold hover:bg-rose hover:text-white transition-colors">
-                    Үйрену
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleTranslateToGesture(word.wordKz); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                    className="w-full mt-3 py-2 border border-rose text-rose rounded-lg text-sm font-bold hover:bg-rose hover:text-white transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Play size={14} /> Көру
                   </button>
                 </div>
               </motion.div>
-            ))}
+            )) : (
+              <div className="col-span-full py-12 text-center text-text-muted">Ақпарат табылмады. Басқа сөз іздеп көріңіз.</div>
+            )}
           </div>
         </div>
       </div>
