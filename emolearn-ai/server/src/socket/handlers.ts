@@ -78,6 +78,7 @@ export function setupSocket(io: Server) {
     socket.on('join_live_room', () => {
       socket.join('live_room')
       console.log(`💬 User joined Live Chat Room: ${socket.id}`)
+      socket.to('live_room').emit('webrtc:user-joined', { userId: socket.id })
     })
 
     socket.on('live_chat_message', (data: {
@@ -88,6 +89,19 @@ export function setupSocket(io: Server) {
       timestamp: Date
     }) => {
       io.to('live_room').emit('live_chat_message', data)
+    })
+
+    // WebRTC Signaling Events
+    socket.on('webrtc:offer', (data) => {
+      socket.to('live_room').emit('webrtc:offer', { offer: data.offer, senderId: socket.id })
+    })
+
+    socket.on('webrtc:answer', (data) => {
+      socket.to('live_room').emit('webrtc:answer', { answer: data.answer, senderId: socket.id })
+    })
+
+    socket.on('webrtc:ice-candidate', (data) => {
+      socket.to('live_room').emit('webrtc:ice-candidate', { candidate: data.candidate, senderId: socket.id })
     })
 
     socket.on('disconnect', () => {

@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera as CameraIcon, CameraOff, Copy, Languages, Hand, BookOpen, HandMetal, Wifi, RotateCcw, CheckCircle2 } from 'lucide-react'
+import { Camera as CameraIcon, CameraOff, Copy, Languages, Hand, BookOpen, HandMetal, Wifi, RotateCcw, CheckCircle2, SendHorizonal } from 'lucide-react'
 import { recognizeGesture, GestureHistory, type Landmark, type GestureResult } from '../lib/gestureRecognizer'
 import { rPPGProcessor } from '../lib/rppg'
 import { useBiometricStore } from '../store/biometricStore'
 import { useUserStore } from '../store/userStore'
-import { joinLiveRoom, emitLiveChatMessage, onLiveChatMessage } from '../lib/socket'
+import { joinLiveRoom, emitLiveChatMessage, onLiveChatMessage, emitWebRTCOffer, emitWebRTCAnswer, emitIceCandidate, onWebRTCEvent } from '../lib/socket'
 
 interface ChatMessage {
   id: string;
@@ -58,6 +58,7 @@ export default function SignLanguage() {
   const [generatedSentence, setGeneratedSentence] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [textInput, setTextInput] = useState('')
+  const [chatInput, setChatInput] = useState('')
   const [copied, setCopied] = useState(false)
   const [fps, setFps] = useState(0)
   const [holdingProgress, setHoldingProgress] = useState(0)
@@ -71,6 +72,8 @@ export default function SignLanguage() {
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
+  const remoteVideoRef = useRef<HTMLVideoElement>(null)
 
   // Sync video with global stream
   useEffect(() => {
@@ -194,6 +197,93 @@ export default function SignLanguage() {
       return cleanup
     }
   }, [isInLiveRoom])
+
+  // WebRTC Logic
+  useEffect(() => {
+    if (!isInLiveRoom) return;
+
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+    peerConnectionRef.current = pc;
+
+    if (globalStream) {
+      globalStream.getTracks().forEach(track => pc.addTrack(track, globalStream));
+    }
+
+    pc.ontrack = (event) => {
+      if (remoteVideoRef.current && event.streams[0]) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
+    };
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        emitIceCandidate(event.candidate);
+      }
+    };
+
+    const cleanupUserJoined = onWebRTCEvent('user-joined', async () => {
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        emitWebRTCOffer(offer);
+      } catch (e) {
+        console.error('Error creating offer', e);
+      }
+    });
+
+    const cleanupOffer = onWebRTCEvent('offer', async ({ offer }) => {
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        emitWebRTCAnswer(answer);
+      } catch (e) {
+        console.error('Error handling offer', e);
+      }
+    });
+
+    const cleanupAnswer = onWebRTCEvent('answer', async ({ answer }) => {
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      } catch (e) {
+        console.error('Error handling answer', e);
+      }
+    });
+
+    const cleanupIce = onWebRTCEvent('ice-candidate', async ({ candidate }) => {
+      try {
+        if (candidate) {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+      } catch (e) {
+        console.error('Error handling ice candidate', e);
+      }
+    });
+
+    return () => {
+      pc.close();
+      cleanupUserJoined();
+      cleanupOffer();
+      cleanupAnswer();
+      cleanupIce();
+    };
+  }, [isInLiveRoom, globalStream]);
+
+  const handleSendManualChat = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !userId) return;
+    
+    emitLiveChatMessage({
+      userId,
+      name: userName || 'Студент',
+      text: chatInput,
+      isSignLanguage: false,
+      timestamp: new Date()
+    });
+    setChatInput('');
+  };
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -531,6 +621,19 @@ export default function SignLanguage() {
              <span className="text-xs text-text-muted">{chatMessages.length} хабарлама</span>
           </div>
           
+          {/* Remote Video Wrapper */}
+          <div className="w-full aspect-video bg-[#0d0d1a] rounded-2xl overflow-hidden border border-white/10 relative shrink-0 shadow-lg">
+            <video
+              ref={remoteVideoRef}
+              className="w-full h-full object-cover"
+              autoPlay playsInline
+            />
+            <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur-sm px-2 py-1 rounded text-[10px] text-white font-bold flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+              Сұхбаттасушы
+            </div>
+          </div>
+          
           <div className="flex-1 bg-bg-secondary/50 rounded-2xl p-4 overflow-y-auto flex flex-col gap-4 border border-white/5">
             {chatMessages.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center opacity-50 text-center">
@@ -568,8 +671,25 @@ export default function SignLanguage() {
             <div ref={chatEndRef} />
           </div>
 
-          <div className="bg-plum/10 border border-plum/20 rounded-xl p-3 text-center">
-            <p className="text-xs text-plum font-medium">Сіздің ымдау арқылы құралған сөйлемдеріңіз чатқа автоматты түрде жіберіледі.</p>
+          <form onSubmit={handleSendManualChat} className="flex gap-2 shrink-0">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Хабарлама жазу..."
+              className="flex-1 px-4 py-3 rounded-xl border border-border-soft bg-white text-text-primary focus:outline-none focus:border-plum text-sm"
+            />
+            <button
+              type="submit"
+              disabled={!chatInput.trim()}
+              className="w-11 h-11 bg-plum text-white rounded-xl flex items-center justify-center hover:bg-plum/90 disabled:opacity-50 transition-colors"
+            >
+              <SendHorizonal size={18} />
+            </button>
+          </form>
+
+          <div className="bg-plum/10 border border-plum/20 rounded-xl p-3 text-center shrink-0">
+            <p className="text-[10px] text-plum font-medium">Сіздің ымдау арқылы құралған сөйлемдеріңіз чатқа автоматты түрде жіберіледі.</p>
           </div>
         </div>
       )}

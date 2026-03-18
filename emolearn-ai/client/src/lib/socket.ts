@@ -59,3 +59,23 @@ export function onLiveChatMessage(callback: (data: any) => void) {
   }
 }
 
+// WebRTC Signaling
+export function emitWebRTCOffer(offer: RTCSessionDescriptionInit) {
+  getSocket().emit('webrtc:offer', { offer })
+}
+
+export function emitWebRTCAnswer(answer: RTCSessionDescriptionInit) {
+  getSocket().emit('webrtc:answer', { answer })
+}
+
+export function emitIceCandidate(candidate: RTCIceCandidate) {
+  getSocket().emit('webrtc:ice-candidate', { candidate })
+}
+
+export function onWebRTCEvent(event: string, callback: (data: any) => void) {
+  const socket = getSocket()
+  socket.on(`webrtc:${event}`, callback)
+  return () => {
+    socket.off(`webrtc:${event}`, callback)
+  }
+}

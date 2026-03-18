@@ -194,7 +194,7 @@ export default function GlobalBiometrics() {
 
         const constraints: MediaStreamConstraints = {
           video: currentDeviceId ? { deviceId: { exact: currentDeviceId } } : { facingMode: 'user' },
-          audio: false
+          audio: true
         }
 
         const stream = await navigator.mediaDevices.getUserMedia(constraints)
