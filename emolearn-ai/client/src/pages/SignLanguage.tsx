@@ -153,17 +153,6 @@ export default function SignLanguage() {
         const data = await response.json()
         if (data.sentence) {
           setGeneratedSentence(data.sentence)
-          
-          // Auto-send to live chat if connected
-          if (isInLiveRoom && userId) {
-            emitLiveChatMessage({
-              userId,
-              name: userName || 'Студент',
-              text: data.sentence,
-              isSignLanguage: true,
-              timestamp: new Date()
-            })
-          }
         }
       } catch (error) {
         console.error('Failed to generate sentence', error)
@@ -260,10 +249,10 @@ export default function SignLanguage() {
 
   const handleSendManualChat = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim() || !userId) return;
+    if (!chatInput.trim()) return;
     
     emitLiveChatMessage({
-      userId,
+      userId: userId || Date.now().toString(),
       name: userName || 'Студент',
       text: chatInput,
       isSignLanguage: false,
@@ -441,11 +430,31 @@ export default function SignLanguage() {
                   <span className="italic text-sm">Сөйлем құрастырылуда...</span>
                 </div>
               ) : (
-                <p className="text-lg font-bold text-text-primary px-1">
-                  {generatedSentence || (
-                    <span className="text-text-muted italic text-sm">Күтіңіз...</span>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-lg font-bold text-text-primary px-1">
+                    {generatedSentence || (
+                      <span className="text-text-muted italic text-sm">Күтіңіз...</span>
+                    )}
+                  </p>
+                  {generatedSentence && isInLiveRoom && (
+                    <button
+                      onClick={() => {
+                        emitLiveChatMessage({
+                          userId: userId || Date.now().toString(),
+                          name: userName || 'Студент',
+                          text: generatedSentence,
+                          isSignLanguage: true,
+                          timestamp: new Date()
+                        })
+                        setHistory([]) // Optionally clear after sending
+                        GESTURE_HISTORY.clear()
+                      }}
+                      className="whitespace-nowrap px-4 py-2 bg-plum text-white rounded-lg text-xs font-bold hover:bg-plum/90 transition-colors flex items-center gap-2"
+                    >
+                      <SendHorizonal size={14} /> Жіберу
+                    </button>
                   )}
-                </p>
+                </div>
               )}
             </motion.div>
           )}
