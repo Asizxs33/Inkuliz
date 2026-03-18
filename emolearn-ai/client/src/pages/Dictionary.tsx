@@ -1,6 +1,6 @@
-import { motion } from 'framer-motion'
-import { Search, Home, GraduationCap, Hash, Palette, Users, Play, Bookmark, Hand, Grid3X3 } from 'lucide-react'
-import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Search, Home, GraduationCap, Hash, Palette, Users, Play, Bookmark, Hand, Grid3X3, Languages, CheckCircle2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 const categories = [
   { icon: Home, label: 'Негізгі', active: true },
@@ -19,9 +19,60 @@ const words = [
   { word_kz: 'Бір', transliteration: 'Bir (Бір)', difficulty: 'ҚИЫН', color: '#EF4444' },
 ]
 
+const KNOWN_WORDS = [
+  { word: 'СӘЛЕМ', gesture: 'Ашық алақан' },
+  { word: 'ЖАҚСЫ', gesture: 'Бас бармақ жоғары' },
+  { word: 'РАХМЕТ', gesture: 'OK белгісі' },
+  { word: 'МЕН', gesture: 'Сұқ саусақ' },
+  { word: 'СІЗ', gesture: 'V белгісі' },
+  { word: 'СҮЙЕМІН', gesture: 'ILY белгісі' },
+  { word: 'СТОП', gesture: 'Жұдырық' },
+  { word: 'ТЕЛЕФОН', gesture: 'Шака белгісі' },
+]
+
 export default function Dictionary() {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState('Барлығы')
+  
+  // Translator states
+  const [textInput, setTextInput] = useState('')
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [playbackSequence, setPlaybackSequence] = useState<{ word: string, gesture: string }[]>([])
+  const [playbackIndex, setPlaybackIndex] = useState(0)
+
+  const handleTranslateToGesture = () => {
+    if (!textInput.trim()) return
+    const ws = textInput.toUpperCase().split(/\s+/)
+    const sequence: { word: string, gesture: string }[] = []
+
+    ws.forEach(w => {
+      const found = KNOWN_WORDS.find(kw => kw.word === w || w.includes(kw.word))
+      if (found) {
+        sequence.push(found)
+      } else {
+        sequence.push({ word: w, gesture: 'БЕЛГІСІЗ' })
+      }
+    })
+
+    if (sequence.length > 0) {
+      setPlaybackSequence(sequence)
+      setPlaybackIndex(0)
+      setIsPlaying(true)
+    }
+  }
+
+  useEffect(() => {
+    if (!isPlaying) return
+    if (playbackIndex >= playbackSequence.length) {
+      setTimeout(() => setIsPlaying(false), 1500)
+      return
+    }
+    const timer = setTimeout(() => {
+      setPlaybackIndex(Math.min(playbackIndex + 1, playbackSequence.length))
+    }, 1200)
+
+    return () => clearTimeout(timer)
+  }, [isPlaying, playbackIndex, playbackSequence])
 
   return (
     <div className="flex gap-6 animate-fade-in h-full">
@@ -92,6 +143,71 @@ export default function Dictionary() {
               {tab}
             </button>
           ))}
+        </div>
+
+        {/* Text → Gesture Translator */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-3">
+            <Languages size={18} className="text-rose" />
+            <span className="text-sm font-bold text-text-muted uppercase">МӘТІННЕН ҚИМЫЛҒА</span>
+          </div>
+          <div className="flex gap-2 mb-4">
+            <input
+              type="text"
+              value={textInput}
+              onChange={(e: any) => setTextInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleTranslateToGesture()}
+              placeholder="Сөз енгізіңіз... (мысалы: Сәлем, Рахмет)"
+              className="flex-1 px-4 py-3 rounded-xl border border-border-soft bg-white text-text-primary focus:outline-none focus:border-rose focus:ring-2 focus:ring-rose/20 text-sm"
+              disabled={isPlaying}
+            />
+            <button
+              onClick={handleTranslateToGesture}
+              disabled={!textInput.trim() || isPlaying}
+              className="px-6 py-3 bg-gradient-to-r from-plum to-rose text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center min-w-[120px]"
+            >
+              {isPlaying ? <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : 'Аудару'}
+            </button>
+          </div>
+          
+          <div className="bg-bg-secondary rounded-xl p-6 flex flex-col items-center gap-3 min-h-[160px] justify-center relative overflow-hidden">
+            {isPlaying && playbackIndex < playbackSequence.length ? (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={playbackIndex}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.1 }}
+                  className="flex flex-col items-center gap-2"
+                >
+                  <div className="w-20 h-20 rounded-2xl bg-plum flex items-center justify-center text-white shadow-lg shadow-plum/30">
+                    {playbackSequence[playbackIndex].gesture !== 'БЕЛГІСІЗ' ? <Hand size={40} /> : <span className="text-3xl font-bold">?</span>}
+                  </div>
+                  <p className="text-text-primary font-bold text-xl">{playbackSequence[playbackIndex].word}</p>
+                  <p className="text-plum font-medium text-sm bg-white px-4 py-1.5 rounded-full">{playbackSequence[playbackIndex].gesture}</p>
+                </motion.div>
+              </AnimatePresence>
+            ) : isPlaying && playbackIndex >= playbackSequence.length ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-2">
+                <CheckCircle2 size={40} className="text-success mb-2" />
+                <p className="text-text-primary font-bold text-base">Аударма аяқталды</p>
+              </motion.div>
+            ) : (
+              textInput
+                ? <><div className="w-16 h-16 rounded-2xl bg-plum-pale flex items-center justify-center"><Hand size={32} className="text-plum" /></div>
+                  <p className="text-plum font-bold text-sm text-center">"{textInput}" → Қимылын көру</p></>
+                : <p className="text-text-muted text-sm text-center">Біздің AI аудармашымызға сөз немесе сөйлем жазыңыз, біз оны қимылмен көрсетеміз!</p>
+            )}
+
+            {isPlaying && (
+              <div className="absolute bottom-0 left-0 h-1.5 bg-plum-pale w-full">
+                <div
+                  className="h-full bg-plum transition-all duration-300"
+                  style={{ width: `${(playbackIndex / Math.max(1, playbackSequence.length)) * 100}%` }}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Featured Word */}

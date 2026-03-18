@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera as CameraIcon, CameraOff, Copy, Languages, Hand, BookOpen, HandMetal, Wifi, RotateCcw, CheckCircle2, SendHorizonal } from 'lucide-react'
+import { Camera as CameraIcon, CameraOff, Copy, Languages, Hand, HandMetal, Wifi, RotateCcw, CheckCircle2, SendHorizonal } from 'lucide-react'
 import { recognizeGesture, GestureHistory, type Landmark, type GestureResult } from '../lib/gestureRecognizer'
 import { rPPGProcessor } from '../lib/rppg'
 import { useBiometricStore } from '../store/biometricStore'
@@ -32,16 +32,7 @@ const CONNECTIONS = [
   [5, 9], [9, 13], [13, 17],
 ]
 
-const KNOWN_WORDS = [
-  { word: 'СӘЛЕМ', gesture: 'Ашық алақан' },
-  { word: 'ЖАҚСЫ', gesture: 'Бас бармақ жоғары' },
-  { word: 'РАХМЕТ', gesture: 'OK белгісі' },
-  { word: 'МЕН', gesture: 'Сұқ саусақ' },
-  { word: 'СІЗ', gesture: 'V белгісі' },
-  { word: 'СҮЙЕМІН', gesture: 'ILY белгісі' },
-  { word: 'СТОП', gesture: 'Жұдырық' },
-  { word: 'ТЕЛЕФОН', gesture: 'Шака белгісі' },
-]
+
 
 export default function SignLanguage() {
   const {
@@ -49,15 +40,11 @@ export default function SignLanguage() {
     globalStream, isCameraEnabled, handLandmarks
   } = useBiometricStore()
 
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [playbackSequence, setPlaybackSequence] = useState<{ word: string, gesture: string }[]>([])
-  const [playbackIndex, setPlaybackIndex] = useState(0)
   const [gestureResult, setGestureResult] = useState<GestureResult>({ word: '—', wordKz: '—', confidence: 0 })
   const [handDetected, setHandDetected] = useState(false)
   const [history, setHistory] = useState<string[]>([])
   const [generatedSentence, setGeneratedSentence] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [textInput, setTextInput] = useState('')
   const [chatInput, setChatInput] = useState('')
   const [copied, setCopied] = useState(false)
   const [fps, setFps] = useState(0)
@@ -300,44 +287,12 @@ export default function SignLanguage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleTranslateToGesture = () => {
-    if (!textInput.trim()) return
-    const words = textInput.toUpperCase().split(/\s+/)
-    const sequence: { word: string, gesture: string }[] = []
 
-    words.forEach(w => {
-      const found = KNOWN_WORDS.find(kw => kw.word === w || w.includes(kw.word))
-      if (found) {
-        sequence.push(found)
-      } else {
-        sequence.push({ word: w, gesture: 'БЕЛГІСІЗ' })
-      }
-    })
-
-    if (sequence.length > 0) {
-      setPlaybackSequence(sequence)
-      setPlaybackIndex(0)
-      setIsPlaying(true)
-    }
-  }
-
-  useEffect(() => {
-    if (!isPlaying) return
-    if (playbackIndex >= playbackSequence.length) {
-      setTimeout(() => setIsPlaying(false), 1500)
-      return
-    }
-    const timer = setTimeout(() => {
-      setPlaybackIndex(Math.min(playbackIndex + 1, playbackSequence.length))
-    }, 1200)
-
-    return () => clearTimeout(timer)
-  }, [isPlaying, playbackIndex, playbackSequence])
 
   const confidence = Math.round(gestureResult.confidence * 100)
 
   return (
-    <div className={`grid gap-6 animate-fade-in ${isInLiveRoom ? 'grid-cols-[1fr_320px_350px]' : 'grid-cols-[1fr_380px]'}`}>
+    <div className={`grid gap-6 animate-fade-in ${isInLiveRoom ? 'grid-cols-[1fr_350px]' : 'grid-cols-1 max-w-4xl mx-auto'}`}>
       {/* ── LEFT PANEL ── */}
       <div className="flex flex-col gap-4">
 
@@ -495,104 +450,6 @@ export default function SignLanguage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
-
-      {/* ── RIGHT PANEL ── */}
-      <div className="flex flex-col gap-4">
-        {/* Text → Gesture */}
-        <div className="card">
-          <div className="flex items-center gap-2 mb-3">
-            <Languages size={16} className="text-rose" />
-            <span className="text-xs font-bold text-text-muted uppercase">МӘТІННЕН ҚИМЫЛҒА</span>
-          </div>
-          <div className="flex gap-2 mb-3">
-            <input
-              type="text"
-              value={textInput}
-              onChange={(e: any) => setTextInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleTranslateToGesture()}
-              placeholder="Сөз енгізіңіз..."
-              className="flex-1 px-4 py-2.5 rounded-xl border border-border-soft bg-white text-text-primary focus:outline-none focus:border-rose focus:ring-2 focus:ring-rose/20 text-sm"
-              disabled={isPlaying}
-            />
-            <button
-              onClick={handleTranslateToGesture}
-              disabled={!textInput.trim() || isPlaying}
-              className="px-4 py-2.5 bg-gradient-to-r from-plum to-rose text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center min-w-[50px]"
-            >
-              {isPlaying ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Languages size={16} />}
-            </button>
-          </div>
-          <div className="bg-bg-secondary rounded-xl p-6 flex flex-col items-center gap-3 min-h-[140px] justify-center relative overflow-hidden">
-            {isPlaying && playbackIndex < playbackSequence.length ? (
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={playbackIndex}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 1.1 }}
-                  className="flex flex-col items-center gap-2"
-                >
-                  <div className="w-16 h-16 rounded-2xl bg-plum flex items-center justify-center text-white shadow-lg shadow-plum/30">
-                    {playbackSequence[playbackIndex].gesture !== 'БЕЛГІСІЗ' ? <Hand size={32} /> : <span className="text-2xl font-bold">?</span>}
-                  </div>
-                  <p className="text-text-primary font-bold text-lg">{playbackSequence[playbackIndex].word}</p>
-                  <p className="text-plum font-medium text-xs bg-white px-3 py-1 rounded-full">{playbackSequence[playbackIndex].gesture}</p>
-                </motion.div>
-              </AnimatePresence>
-            ) : isPlaying && playbackIndex >= playbackSequence.length ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-2">
-                <CheckCircle2 size={32} className="text-success mb-2" />
-                <p className="text-text-primary font-bold text-sm">Аударма аяқталды</p>
-              </motion.div>
-            ) : (
-              textInput
-                ? <><div className="w-14 h-14 rounded-2xl bg-plum-pale flex items-center justify-center"><Hand size={28} className="text-plum" /></div>
-                  <p className="text-plum font-bold text-sm text-center">"{textInput}" → Қимыл</p></>
-                : <p className="text-text-muted text-sm text-center">Аудару үшін сөз енгізіңіз</p>
-            )}
-
-            {isPlaying && (
-              <div className="absolute bottom-0 left-0 h-1 bg-plum-pale w-full">
-                <div
-                  className="h-full bg-plum transition-all duration-300"
-                  style={{ width: `${(playbackIndex / Math.max(1, playbackSequence.length)) * 100}%` }}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Gesture guide — highlights current detection */}
-        <div className="card">
-          <div className="flex items-center gap-2 mb-3">
-            <BookOpen size={16} className="text-plum" />
-            <span className="text-xs font-bold text-text-muted uppercase">ҚИМЫЛ НҰСҚАУЛЫҒЫ</span>
-          </div>
-          <div className="grid grid-cols-1 gap-2">
-            {KNOWN_WORDS.map((item) => {
-              const active = gestureResult.word === item.word
-              return (
-                <div
-                  key={item.word}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${active ? 'bg-plum text-white' : 'bg-bg-secondary hover:bg-plum-pale'
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${active ? 'bg-white/20' : 'bg-white'}`}>
-                      <Hand size={16} className={active ? 'text-white' : 'text-plum'} />
-                    </div>
-                    <div>
-                      <p className={`text-sm font-bold ${active ? 'text-white' : 'text-text-primary'}`}>{item.word}</p>
-                      <p className={`text-xs ${active ? 'text-white/70' : 'text-text-muted'}`}>{item.gesture}</p>
-                    </div>
-                  </div>
-                  {active && <CheckCircle2 size={16} className="text-white" />}
-                </div>
-              )
-            })}
-          </div>
-        </div>
 
         {/* Session stats */}
         <div className="card">
