@@ -91,10 +91,8 @@ export default function GlobalBiometrics() {
   // Particle System state
   const particlesRef = useRef<Array<{x: number, y: number, life: number, color: string}>>([])
   
-  // Web Audio API Alarm (Fixes Safari NotSupportedError permanently)
-  const audioCtxRef = useRef<AudioContext | null>(null)
-  const audioBufferRef = useRef<AudioBuffer | null>(null)
-  const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null)
+  // Native HTML Audio Element Alarm (M4A for perfect Safari compatibility)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const setBpm = useBiometricStore(s => s.setBpm)
   const setEmotion = useBiometricStore(s => s.setEmotion)
@@ -128,42 +126,38 @@ export default function GlobalBiometrics() {
     })
   }, [])
 
-  // Initialize Web Audio API and fetch/decode the MP3
+  // Initialize and handle Alarm Audio with M4A (AAC)
   useEffect(() => {
-    const loadAudio = async () => {
-      try {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
-        audioCtxRef.current = new AudioContextClass()
-        
-        const response = await fetch('/alert_clean.m4a')
-        const arrayBuffer = await response.arrayBuffer()
-        
-        // Decode audio data into memory
-        audioBufferRef.current = await audioCtxRef.current.decodeAudioData(arrayBuffer)
-      } catch (err) {
-        console.error('Failed to load or decode audio buffer:', err)
-      }
-    }
-    loadAudio()
-    
+    // Safari effortlessly streams M4A using native #t=40 Media Fragment
+    const audio = new window.Audio('/alert_clean.m4a#t=40')
+    audio.loop = true
+    audio.preload = 'auto'
+    audioRef.current = audio
     return () => {
-      if (sourceNodeRef.current) {
-        try { sourceNodeRef.current.stop() } catch(e) {}
-      }
-      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-        audioCtxRef.current.close().catch(() => {})
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
       }
     }
   }, [])
 
-  // Safari Autoplay Unlock: requires restoring AudioContext state
+  // Safari Autoplay Unlock: guarantees the alarm can play without NotAllowedError
   useEffect(() => {
     const unlockAudio = () => {
-      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume().catch(() => {})
+      if (audioRef.current && audioRef.current.paused) {
+        audioRef.current.volume = 0; // mute the initial quick unlock play
+        const p = audioRef.current.play()
+        if (p !== undefined) {
+          p.then(() => {
+            audioRef.current?.pause()
+            if (audioRef.current) audioRef.current.volume = 1 // restore volume
+          }).catch(() => {
+            if (audioRef.current) audioRef.current.volume = 1
+          })
+        }
+        document.removeEventListener('click', unlockAudio)
+        document.removeEventListener('touchstart', unlockAudio)
       }
-      document.removeEventListener('click', unlockAudio)
-      document.removeEventListener('touchstart', unlockAudio)
     }
     document.addEventListener('click', unlockAudio)
     document.addEventListener('touchstart', unlockAudio)
@@ -173,40 +167,18 @@ export default function GlobalBiometrics() {
     }
   }, [])
 
-  // Trigger alarm audio using AudioBufferSourceNode
+  // Trigger alarm audio play/pause
   useEffect(() => {
-    if (isSleeping && audioCtxRef.current && audioBufferRef.current) {
-      // Ensure context is running and unlocked
-      if (audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume().catch(() => {})
+    if (isSleeping && audioRef.current) {
+      audioRef.current.volume = 1
+      const playPromise = audioRef.current.play()
+      if (playPromise !== undefined) {
+        playPromise.catch(e => console.error('Audio play blocked:', e))
       }
-      
-      // Stop any existing sound
-      if (sourceNodeRef.current) {
-        try { sourceNodeRef.current.stop() } catch(e) {}
-      }
-      
-      // Create new audio source
-      const source = audioCtxRef.current.createBufferSource()
-      source.buffer = audioBufferRef.current
-      source.connect(audioCtxRef.current.destination)
-      source.loop = true
-      
-      try {
-        // start(when, offset_in_seconds) -> Wait 0s, start playing from 40s mark
-        source.start(0, 40)
-      } catch(e) {
-        console.warn('WebAudio Start Error:', e)
-      }
-      
-      sourceNodeRef.current = source
-      
-    } else if (!isSleeping) {
-      // Stop the sound immediately
-      if (sourceNodeRef.current) {
-        try { sourceNodeRef.current.stop() } catch(e) {}
-        sourceNodeRef.current = null
-      }
+    } else if (!isSleeping && audioRef.current) {
+      audioRef.current.pause()
+      // Gently queue the audio back to 40s in background
+      try { audioRef.current.currentTime = 40 } catch(e) {}
     }
   }, [isSleeping])
 
