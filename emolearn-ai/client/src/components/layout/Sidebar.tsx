@@ -16,6 +16,8 @@ const studentItems = [
 
 const teacherItems = [
   { to: '/teacher', icon: GraduationCap, label: 'Сыныбым' },
+  { to: '/teacher/tests', icon: LayoutDashboard, label: 'Тесттер' },
+  { to: '/teacher/analytics', icon: BarChart3, label: 'Аналитика' },
   { to: '/live-chat', icon: MessageSquare, label: 'Сұхбат' },
   { to: '/profile', icon: User, label: 'Профиль' },
 ]

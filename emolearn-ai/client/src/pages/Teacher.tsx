@@ -1,6 +1,6 @@
-import { motion } from 'framer-motion'
-import { Send, FileText, AlertTriangle, Heart, User, SendHorizonal, Activity, Plus, Copy, Check } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Send, FileText, AlertTriangle, Heart, User, SendHorizonal, Activity, Plus, Copy, Check, X, TrendingUp, Brain } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 import { useBiometricStore } from '../store/biometricStore'
 import { useUserStore } from '../store/userStore'
 import { getSocket } from '../lib/socket'
@@ -11,12 +11,6 @@ const statusColors: Record<string, { border: string; text: string; bg: string }>
   calm: { border: 'border-success', text: 'text-text-muted', bg: 'bg-green-50' },
   bored: { border: 'border-warning', text: 'text-warning', bg: 'bg-yellow-50' },
 }
-
-const emotionTimeline = [
-  { label: 'Зейінді', time: '22 мин', color: '#10B981' },
-  { label: 'Бейтарап', time: '12 мин', color: '#9C8A98' },
-  { label: 'Мазасыз', time: '4 мин', color: '#E8507A' },
-]
 
 export default function Teacher() {
   const { name } = useUserStore()
@@ -34,6 +28,12 @@ export default function Teacher() {
   const [message, setMessage] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [difficulty, setDifficulty] = useState(6.5)
+
+  // Live BPM history for selected student
+  const [bpmHistory, setBpmHistory] = useState<{time: string, bpm: number}[]>([])
+  
+  // Report modal
+  const [showReport, setShowReport] = useState(false)
 
   // Fetch classes on mount
   useEffect(() => {
@@ -62,9 +62,12 @@ export default function Teacher() {
         const data = await res.json()
         const mapped = data.students.map((s: any) => ({
           ...s,
-          emotion: 'ЗЕЙІНДІ',
-          bpm: 76,
-          status: 'focused'
+          emotion: '—',
+          bpm: 0,
+          status: 'calm',
+          online: false,
+          emotionHistory: [] as string[],
+          bpmHistory: [] as number[]
         }))
         setStudents(mapped)
         if (mapped.length > 0) setSelectedStudent(mapped[0])
@@ -80,20 +83,33 @@ export default function Teacher() {
     if (!activeClass) return
     const socket = getSocket()
     
-    // Join a specific class room
     socket.emit('teacher:join', activeClass.id)
 
     const handleUpdate = (data: any) => {
+      const now = new Date()
+      const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`
+
       setStudents(prev => prev.map(s => {
         if (s.id === data.userId) {
           const status = data.bpm > 90 || data.emotion === 'ҚОРЫҚҚАН' || data.emotion === 'АШУЛЫ' 
             ? 'stressed' 
             : (data.emotion === 'ШОҒЫРЛАНҒАН' || data.emotion === 'ЗЕЙІНДІ' ? 'focused' : 'calm')
           
-          if (selectedStudent?.id === data.userId) {
-            setSelectedStudent({ ...s, bpm: data.bpm, emotion: data.emotionKz || data.emotion, status })
+          const updated = { 
+            ...s, 
+            bpm: data.bpm, 
+            emotion: data.emotionKz || data.emotion, 
+            status,
+            online: true,
+            emotionHistory: [...(s.emotionHistory || []), data.emotionKz || data.emotion].slice(-20),
+            bpmHistory: [...(s.bpmHistory || []), data.bpm].slice(-20)
           }
-          return { ...s, bpm: data.bpm, emotion: data.emotionKz || data.emotion, status }
+
+          if (selectedStudent?.id === data.userId) {
+            setSelectedStudent(updated)
+            setBpmHistory(prev => [...prev, { time: timeStr, bpm: data.bpm }].slice(-30))
+          }
+          return updated
         }
         return s
       }))
@@ -104,6 +120,18 @@ export default function Teacher() {
       socket.off('student:biometric', handleUpdate)
     }
   }, [activeClass, selectedStudent?.id])
+
+  // Reset BPM history when selecting a new student
+  useEffect(() => {
+    if (selectedStudent) {
+      setBpmHistory(
+        (selectedStudent.bpmHistory || []).map((bpm: number, i: number) => ({
+          time: `${i}`,
+          bpm
+        }))
+      )
+    }
+  }, [selectedStudent?.id])
 
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -156,6 +184,11 @@ export default function Teacher() {
   const overallStress = students.length > 0 
     ? Math.round((students.filter(s => s.status === 'stressed').length / students.length) * 100) 
     : 0
+  
+  const onlineCount = students.filter(s => s.online).length
+  const avgBpm = students.filter(s => s.bpm > 0).length > 0 
+    ? Math.round(students.filter(s => s.bpm > 0).reduce((sum, s) => sum + s.bpm, 0) / students.filter(s => s.bpm > 0).length)
+    : 0
 
   if (classes.length === 0) {
     return (
@@ -193,7 +226,7 @@ export default function Teacher() {
   return (
     <div className="flex flex-col gap-5 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-extrabold text-text-primary">{activeClass?.name}</h1>
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-border-soft">
@@ -204,7 +237,7 @@ export default function Teacher() {
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <select 
             className="px-4 py-2 rounded-xl border border-border-soft bg-white text-sm font-bold focus:outline-none focus:border-plum"
             value={activeClass?.id || ''}
@@ -214,22 +247,23 @@ export default function Teacher() {
           </select>
 
           <span className="text-rose font-bold text-sm bg-rose-pale px-4 py-2 rounded-full">LIVE MODE</span>
-          <div className="flex items-center gap-2 bg-plum-pale px-4 py-2 rounded-full">
-            <div className={`w-2 h-2 rounded-full ${overallStress > 30 ? 'bg-rose' : 'bg-success'}`} />
-            <span className={`text-sm font-bold ${overallStress > 30 ? 'text-rose' : 'text-plum'}`}>
-              СЫНЫП: {overallStress > 30 ? 'НАЗАР АУДАРУ ҚАЖЕТ' : 'ҚАЛЫПТЫ'}
-            </span>
+
+          {/* Live Stats */}
+          <div className="flex items-center gap-3 text-xs font-bold">
+            <span className="bg-success/10 text-success px-3 py-1.5 rounded-full">{onlineCount} онлайн</span>
+            {avgBpm > 0 && <span className="bg-rose-pale text-rose px-3 py-1.5 rounded-full">♥ {avgBpm} BPM</span>}
           </div>
-          <div className="flex items-center gap-3 ml-4">
-            <div className="text-right">
-              <p className="text-sm font-bold text-text-primary">{name}</p>
-              <p className="text-xs text-text-muted">Мұғалім</p>
-            </div>
+
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${overallStress > 30 ? 'bg-red-50' : 'bg-plum-pale'}`}>
+            <div className={`w-2 h-2 rounded-full ${overallStress > 30 ? 'bg-rose animate-pulse' : 'bg-success'}`} />
+            <span className={`text-sm font-bold ${overallStress > 30 ? 'text-rose' : 'text-plum'}`}>
+              {overallStress > 30 ? 'НАЗАР АУДАРУ ҚАЖЕТ' : 'ҚАЛЫПТЫ'}
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_340px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
         {/* Student Grid */}
         <div>
           {students.length === 0 ? (
@@ -240,9 +274,9 @@ export default function Teacher() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {students.map((student, i) => {
-                const colors = statusColors[student.status] || statusColors.focused
+                const colors = statusColors[student.status] || statusColors.calm
                 const isSelected = selectedStudent?.id === student.id
                 return (
                   <motion.div
@@ -256,16 +290,21 @@ export default function Teacher() {
                       isSelected ? 'ring-2 ring-plum shadow-lg' : ''
                     } ${student.status === 'stressed' ? 'animate-pulse' : ''}`}
                   >
+                    {/* Online indicator */}
+                    <div className="flex justify-end mb-1">
+                      <div className={`w-2 h-2 rounded-full ${student.online ? 'bg-success' : 'bg-gray-300'}`} />
+                    </div>
                     <h4 className="font-bold text-text-primary text-sm truncate px-1" title={student.name}>{student.name}</h4>
                     <span className={`text-xs font-bold ${colors.text} flex items-center justify-center gap-1 mt-1 truncate`}>
                       {student.status === 'stressed' && <Heart size={12} className="text-danger" />}
                       {student.status === 'focused' && <span className="text-success">●</span>}
                       {student.emotion}
                     </span>
-                    <p className={`text-3xl font-extrabold mt-2 ${student.status === 'stressed' ? 'text-danger' : 'text-text-primary'}`}>
-                      {student.bpm}
+                    <p className={`text-3xl font-extrabold mt-2 ${student.status === 'stressed' ? 'text-danger' : student.bpm > 0 ? 'text-text-primary' : 'text-text-muted'}`}>
+                      {student.bpm > 0 ? student.bpm : '—'}
                     </p>
-                    <p className={`text-xs ${student.status === 'stressed' ? 'text-danger font-bold' : 'text-text-muted'}`}>BPM
+                    <p className={`text-xs ${student.status === 'stressed' ? 'text-danger font-bold' : 'text-text-muted'}`}>
+                      {student.bpm > 0 ? 'BPM' : 'Офлайн'}
                       {student.status === 'stressed' && <Activity size={12} className="inline ml-1" />}
                     </p>
                   </motion.div>
@@ -276,13 +315,17 @@ export default function Teacher() {
 
           {/* Bottom Controls */}
           {students.length > 0 && (
-            <div className="flex items-center gap-4 mt-6">
+            <div className="flex items-center gap-4 mt-6 flex-wrap">
               <div className="card flex items-center gap-3 py-3 px-4 w-fit">
                 <span className="text-rose font-bold text-sm">ЖАЛПЫ СТРЕСС</span>
                 <span className="text-rose font-extrabold">{overallStress}%</span>
                 <div className="w-20 h-2 bg-plum-pale rounded-full">
-                  <div className="h-full bg-rose rounded-full" style={{ width: `${overallStress}%` }} />
+                  <div className="h-full bg-rose rounded-full transition-all" style={{ width: `${overallStress}%` }} />
                 </div>
+              </div>
+              <div className="card flex items-center gap-3 py-3 px-4 w-fit">
+                <span className="text-plum font-bold text-sm">ОНЛАЙН</span>
+                <span className="text-plum font-extrabold">{onlineCount}/{students.length}</span>
               </div>
             </div>
           )}
@@ -290,7 +333,6 @@ export default function Teacher() {
 
         {/* Right Detail Panel */}
         <div className="flex flex-col gap-4">
-          {/* Selected Student */}
           {selectedStudent ? (
             <>
               <motion.div
@@ -299,53 +341,86 @@ export default function Teacher() {
                 animate={{ x: 0, opacity: 1 }}
                 className="card text-center"
               >
+                <div className="flex justify-end">
+                  <div className={`w-2.5 h-2.5 rounded-full ${selectedStudent.online ? 'bg-success' : 'bg-gray-300'}`} />
+                </div>
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-plum-pale to-soft-pink flex items-center justify-center mx-auto mb-3">
                   <User size={36} className="text-plum" />
                 </div>
                 <h3 className="text-xl font-extrabold text-text-primary truncate px-2">{selectedStudent.name}</h3>
-                <p className="text-sm text-text-muted">{activeClass?.name} • СТУДЕНТ</p>
+                <p className="text-sm text-text-muted">{activeClass?.name} • {selectedStudent.online ? 'ОНЛАЙН' : 'ОФЛАЙН'}</p>
+                <div className="flex justify-center gap-4 mt-3">
+                  <div className="text-center">
+                    <p className="text-xs text-text-muted">ЭМОЦИЯ</p>
+                    <p className="text-sm font-bold text-plum">{selectedStudent.emotion}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-text-muted">BPM</p>
+                    <p className={`text-sm font-bold ${selectedStudent.status === 'stressed' ? 'text-danger' : 'text-text-primary'}`}>
+                      {selectedStudent.bpm > 0 ? selectedStudent.bpm : '—'}
+                    </p>
+                  </div>
+                </div>
               </motion.div>
 
-              {/* Heart Rate Chart */}
+              {/* Live BPM Chart */}
               <div className="card">
                 <p className="text-xs font-bold text-text-muted uppercase tracking-widest mb-3 flex items-center gap-2">
                   ЖҮРЕК СОҒУ ЖИІЛІГІ <Heart size={14} className="text-rose" />
                 </p>
-                <svg className="w-full h-20" viewBox="0 0 280 60">
-                  <defs>
-                    <linearGradient id="teacherHr" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#E8507A" />
-                      <stop offset="100%" stopColor="#6B2D5E" />
-                    </linearGradient>
-                  </defs>
-                  <polyline
-                    fill="none"
-                    stroke="url(#teacherHr)"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    points="0,40 20,35 40,30 50,15 55,50 60,25 80,30 100,28 110,10 115,55 120,30 140,25 160,20 170,8 175,48 180,22 200,28 220,30 230,15 235,50 240,25 260,30 280,35"
-                  />
-                </svg>
+                {bpmHistory.length > 1 ? (
+                  <svg className="w-full h-20" viewBox={`0 0 ${Math.max(280, bpmHistory.length * 10)} 60`} preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="teacherHr" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#E8507A" />
+                        <stop offset="100%" stopColor="#6B2D5E" />
+                      </linearGradient>
+                    </defs>
+                    <polyline
+                      fill="none"
+                      stroke="url(#teacherHr)"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      points={bpmHistory.map((p, i) => {
+                        const x = (i / (bpmHistory.length - 1)) * 280
+                        const y = 55 - ((p.bpm - 50) / 80) * 50 // Scale BPM 50-130 to 5-55
+                        return `${x},${Math.max(5, Math.min(55, y))}`
+                      }).join(' ')}
+                    />
+                  </svg>
+                ) : (
+                  <div className="h-20 flex items-center justify-center text-xs text-text-muted">
+                    <Activity size={16} className="mr-2 opacity-50" />
+                    Деректер жиналуда...
+                  </div>
+                )}
                 <div className="flex justify-between text-xs text-text-muted mt-1">
-                  <span>09:00</span>
+                  <span>{bpmHistory[0]?.time || '—'}</span>
                   <span>Қазір</span>
                 </div>
                 <div className="flex gap-6 mt-3">
                   <div>
                     <p className="text-xs text-text-muted">АҒЫМДАҒЫ</p>
                     <p className={`text-xl font-extrabold ${selectedStudent.status === 'stressed' ? 'text-rose' : 'text-text-primary'}`}>
-                      {selectedStudent.bpm}
+                      {selectedStudent.bpm > 0 ? selectedStudent.bpm : '—'}
                     </p>
                   </div>
+                  {bpmHistory.length > 0 && (
+                    <div>
+                      <p className="text-xs text-text-muted">ОРТАША</p>
+                      <p className="text-xl font-extrabold text-text-primary">
+                        {Math.round(bpmHistory.reduce((s, p) => s + p.bpm, 0) / bpmHistory.length)}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Actions */}
-              <button className="btn-primary py-3 font-bold flex items-center justify-center gap-2">
-                <AlertTriangle size={16} />
-                Студентке ескерту жіберу
-              </button>
-              <button className="py-3 border border-border-soft rounded-xl text-text-secondary font-bold text-sm hover:border-plum hover:text-plum transition-colors flex items-center justify-center gap-2">
+              <button 
+                onClick={() => setShowReport(true)}
+                className="py-3 border border-border-soft rounded-xl text-text-secondary font-bold text-sm hover:border-plum hover:text-plum transition-colors flex items-center justify-center gap-2"
+              >
                 <FileText size={16} />
                 Толық есеп
               </button>
@@ -359,14 +434,14 @@ export default function Teacher() {
       </div>
 
       {/* Bottom Bar */}
-      <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-border-soft mt-auto">
+      <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-border-soft mt-auto flex-wrap">
         <span className="text-rose text-xl"><SendHorizonal size={20} className="text-rose" /></span>
         <input
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Сыныпқа хабарлама жіберу (Telegram)..."
-          className="flex-1 px-4 py-2.5 rounded-xl border border-border-soft bg-white text-text-primary focus:outline-none focus:border-rose focus:ring-2 focus:ring-rose/20 text-sm"
+          className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl border border-border-soft bg-white text-text-primary focus:outline-none focus:border-rose focus:ring-2 focus:ring-rose/20 text-sm"
         />
         <button 
           onClick={handleSendMessage}
@@ -376,7 +451,7 @@ export default function Teacher() {
           {isSending ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Send size={14} />}
           Жіберу
         </button>
-        <div className="flex items-center gap-3 ml-4 border-l border-border-soft pl-4">
+        <div className="flex items-center gap-3 border-l border-border-soft pl-4">
           <div>
             <p className="text-xs text-text-muted">САБАҚТЫҢ КҮРДЕЛІЛІГІ</p>
             <div className="flex items-center gap-2">
@@ -393,6 +468,94 @@ export default function Teacher() {
           />
         </div>
       </div>
+
+      {/* Student Report Modal */}
+      <AnimatePresence>
+        {showReport && selectedStudent && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowReport(false)} />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl"
+            >
+              <button onClick={() => setShowReport(false)} className="absolute right-4 top-4 text-text-muted hover:text-text-primary">
+                <X size={24} />
+              </button>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-plum-pale flex items-center justify-center">
+                  <FileText size={24} className="text-plum" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-text-primary">{selectedStudent.name}</h2>
+                  <p className="text-xs text-text-muted">Оқушы есебі • {activeClass?.name}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {/* BPM Stats */}
+                <div className="bg-rose-pale rounded-xl p-4">
+                  <p className="text-xs font-bold text-rose uppercase mb-2">Жүрек соғу жиілігі</p>
+                  <div className="flex gap-6">
+                    <div>
+                      <p className="text-2xl font-black text-text-primary">{selectedStudent.bpm > 0 ? selectedStudent.bpm : '—'}</p>
+                      <p className="text-xs text-text-muted">Ағымдағы BPM</p>
+                    </div>
+                    {bpmHistory.length > 0 && (
+                      <>
+                        <div>
+                          <p className="text-2xl font-black text-text-primary">{Math.round(bpmHistory.reduce((s, p) => s + p.bpm, 0) / bpmHistory.length)}</p>
+                          <p className="text-xs text-text-muted">Орташа BPM</p>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-black text-text-primary">{Math.max(...bpmHistory.map(p => p.bpm))}</p>
+                          <p className="text-xs text-text-muted">Максимум</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Emotion Stats */}
+                <div className="bg-plum-pale rounded-xl p-4">
+                  <p className="text-xs font-bold text-plum uppercase mb-2">Эмоция тарихы</p>
+                  {selectedStudent.emotionHistory?.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {(() => {
+                        const counts: Record<string, number> = {}
+                        selectedStudent.emotionHistory.forEach((e: string) => { counts[e] = (counts[e] || 0) + 1 })
+                        return Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([emotion, count]) => (
+                          <span key={emotion} className="text-xs font-bold bg-white/60 px-3 py-1.5 rounded-full">
+                            {emotion} ({count})
+                          </span>
+                        ))
+                      })()}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-text-muted">Деректер жиналуда...</p>
+                  )}
+                </div>
+
+                {/* Status */}
+                <div className="bg-bg-secondary rounded-xl p-4 flex items-center gap-3">
+                  <Brain size={20} className="text-plum" />
+                  <div>
+                    <p className="text-sm font-bold text-text-primary">
+                      {selectedStudent.status === 'stressed' ? '⚠️ Студент стресс жағдайда' 
+                        : selectedStudent.status === 'focused' ? '✅ Студент зейінді' 
+                        : '😌 Студент тыныш күйде'}
+                    </p>
+                    <p className="text-xs text-text-muted">
+                      {bpmHistory.length} деректер нүктесі жиналды
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

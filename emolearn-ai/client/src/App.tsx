@@ -7,6 +7,8 @@ import Analytics from './pages/Analytics'
 import Dictionary from './pages/Dictionary'
 import Profile from './pages/Profile'
 import Teacher from './pages/Teacher'
+import TeacherTests from './pages/TeacherTests'
+import TeacherAnalytics from './pages/TeacherAnalytics'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import AITutor from './pages/AITutor'
@@ -62,6 +64,8 @@ export default function App() {
         
         {/* Teacher Routes */}
         <Route path="/teacher" element={<ProtectedLayout><Teacher /></ProtectedLayout>} />
+        <Route path="/teacher/tests" element={<ProtectedLayout><TeacherTests /></ProtectedLayout>} />
+        <Route path="/teacher/analytics" element={<ProtectedLayout><TeacherAnalytics /></ProtectedLayout>} />
       </Routes>
     </BrowserRouter>
   )
