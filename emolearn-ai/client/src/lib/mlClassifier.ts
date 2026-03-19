@@ -111,12 +111,13 @@ export function dtwDistance(seq1: number[][], seq2: number[][]): number {
 
 export interface MLTrainingSequence {
   wordKz: string;
-  sequence: number[][]; // Array of normalized 128-dim vectors
+  rawSequence: Landmark[][][]; // Preserved absolute raw tracking points
+  sequence?: number[][]; // Cached normalized calculation
 }
 
 export class GestureML {
   private examples: MLTrainingSequence[] = []
-  private readonly STORAGE_KEY = 'emolearn_dtw_dual_sequences'
+  private readonly STORAGE_KEY = 'emolearn_dtw_v3' // Upgraded storage key to prevent old cache collisions
 
   constructor() {
     this.load()
@@ -126,7 +127,13 @@ export class GestureML {
     try {
       const data = localStorage.getItem(this.STORAGE_KEY)
       if (data) {
-        this.examples = JSON.parse(data)
+        const rawExamples = JSON.parse(data)
+        // Dynamically re-normalize everything on load so any adjustments to VELOCITY_WEIGHT apply to historical data!
+        this.examples = rawExamples.map((ex: any) => ({
+          wordKz: ex.wordKz,
+          rawSequence: ex.rawSequence,
+          sequence: normalizeDualSequence(ex.rawSequence) 
+        }))
         console.log(`[ML] Loaded ${this.examples.length} dual-hand sequence examples.`)
       }
     } catch (e) {
@@ -136,7 +143,12 @@ export class GestureML {
 
   private save() {
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.examples))
+      // Strip out the cached sequence calculation to save Space in LocalStorage
+      const serialized = this.examples.map(ex => ({
+         wordKz: ex.wordKz,
+         rawSequence: ex.rawSequence
+      }))
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(serialized))
     } catch (e) {
       console.warn('[ML] Failed to save dataset', e)
     }
@@ -146,7 +158,7 @@ export class GestureML {
     const sequence = normalizeDualSequence(rawSequence)
     if (sequence.length < 5) return // Too short
 
-    this.examples.push({ wordKz, sequence })
+    this.examples.push({ wordKz, rawSequence, sequence })
     this.save()
   }
 
@@ -173,6 +185,7 @@ export class GestureML {
     let minDistance = Infinity
 
     for (const example of this.examples) {
+      if (!example.sequence) continue
       const dist = dtwDistance(liveSequence, example.sequence)
       if (dist < minDistance) {
         minDistance = dist
@@ -180,10 +193,10 @@ export class GestureML {
       }
     }
 
-    // Since vector is now 128 dimensions, the distance will naturally be higher.
     // Euclidean distance in 128D space.
-    // 0.45 is a strict threshold: correct signs will be ~0.15-0.30, wrong signs > 0.60
-    if (minDistance < 0.45) {
+    // Adjusted mathematically: we are using VELOCITY_WEIGHT = 1.8
+    // distance will roughly hover around 0.3 - 0.7 for good motions.
+    if (minDistance < 1.1) {
       return {
         wordKz: bestMatch,
         distance: minDistance
