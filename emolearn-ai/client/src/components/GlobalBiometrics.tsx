@@ -126,47 +126,36 @@ export default function GlobalBiometrics() {
     })
   }, [])
 
-  // Safari Autoplay Unlock: Continuous Silent Playback Hack
-  // Safari revokes async `play()` permissions if the audio is paused. 
-  // To avoid `NotAllowedError` permanently, we just KEEP the audio playing forever but completely silent!
-  useEffect(() => {
-    const unlockAudio = () => {
-      if (audioRef.current && audioRef.current.paused) {
-        audioRef.current.volume = 0.0001 // practically zero
-        const p = audioRef.current.play()
-        if (p !== undefined) {
-          p.catch(() => {})
-        }
-        
-        document.removeEventListener('click', unlockAudio, { capture: true })
-        document.removeEventListener('touchstart', unlockAudio, { capture: true })
+  // Sound permission state: user must click a visible button ONCE to unlock audio on Safari
+  const [soundEnabled, setSoundEnabled] = useState(false)
+
+  // Direct onClick handler for the visible "Enable Sound" button
+  // This is the ONLY method Safari trusts: a VISIBLE button with a SYNCHRONOUS play() call
+  const handleEnableSound = () => {
+    if (audioRef.current) {
+      audioRef.current.volume = 0.0001 // practically silent
+      const p = audioRef.current.play()
+      if (p !== undefined) {
+        p.then(() => {
+          setSoundEnabled(true)
+        }).catch((e) => {
+          console.error('Sound enable failed:', e)
+        })
       }
     }
-    
-    document.addEventListener('click', unlockAudio, { capture: true })
-    document.addEventListener('touchstart', unlockAudio, { capture: true })
-    
-    return () => {
-      document.removeEventListener('click', unlockAudio, { capture: true })
-      document.removeEventListener('touchstart', unlockAudio, { capture: true })
-    }
-  }, [])
+  }
 
-  // Trigger alarm visually by toggling VOLUME instead of play/pause
+  // Trigger alarm by toggling VOLUME (audio is already playing silently)
   useEffect(() => {
-    if (!audioRef.current) return
+    if (!audioRef.current || !soundEnabled) return
     
     if (isSleeping) {
-      if (audioRef.current.paused) {
-        // Edge case: if they completely bypassed the document click, try to play it
-        audioRef.current.play().catch(e => console.error('Audio play blocked:', e))
-      }
       try { audioRef.current.currentTime = 0 } catch(e) {}
       audioRef.current.volume = 1
     } else {
-      audioRef.current.volume = 0.0001 // go back to silent spinning
+      audioRef.current.volume = 0.0001
     }
-  }, [isSleeping])
+  }, [isSleeping, soundEnabled])
 
   const getDevices = useCallback(async () => {
     try {
@@ -435,6 +424,18 @@ export default function GlobalBiometrics() {
       {/* GLOWING SCREEN BORDER FOR STRESS */}
       {isActive && isStressRef.current && (
         <div className="fixed inset-0 pointer-events-none z-[9998] border-[8px] border-rose/30 opacity-50 animate-pulse shadow-[inset_0_0_100px_rgba(232,80,122,0.3)] transition-all duration-1000" />
+      )}
+
+      {/* FLOATING SOUND ENABLE BUTTON - Safari requires a VISIBLE direct click to unlock audio */}
+      {isActive && !soundEnabled && (
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={handleEnableSound}
+          className="fixed bottom-20 left-4 z-[10000] bg-gradient-to-r from-purple-600 to-rose px-5 py-3 rounded-full text-white font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform flex items-center gap-2 pointer-events-auto"
+        >
+          🔊 Дыбысты қосу
+        </motion.button>
       )}
 
       {/* BREATHING CIRCLE OVERLAY if very high stress/pulse */}
