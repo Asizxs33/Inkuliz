@@ -152,6 +152,26 @@ classesRouter.post('/decline-invite', async (req, res) => {
   }
 })
 
+// DELETE /api/classes/:classId/students/:studentId (Teacher removes a student)
+classesRouter.delete('/:classId/students/:studentId', async (req, res) => {
+  try {
+    const { classId, studentId } = req.params;
+    await db.delete(classStudents)
+      .where(and(eq(classStudents.class_id, classId), eq(classStudents.student_id, studentId)));
+    
+    // Optionally remove any pending alerts/invites too
+    await db.delete(alerts).where(and(
+      eq(alerts.student_id, studentId), 
+      eq(alerts.type, 'class_invite'),
+      ilike(alerts.message, `%${classId}%`)
+    ));
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Remove student error:', err);
+    res.status(500).json({ error: 'Failed to remove student' });
+  }
+})
 
 // GET /api/classes/student/:studentId (Get class the student belongs to)
 // MUST be before /:teacherId to avoid route collision

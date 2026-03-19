@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, FileText, AlertTriangle, Heart, User, SendHorizonal, Activity, Plus, Copy, Check, X, TrendingUp, Brain } from 'lucide-react'
+import { Send, FileText, AlertTriangle, Heart, User, SendHorizonal, Activity, Plus, Copy, Check, X, TrendingUp, Brain, UserMinus } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useBiometricStore } from '../store/biometricStore'
 import { useUserStore } from '../store/userStore'
@@ -127,6 +127,21 @@ export default function Teacher() {
     }
     fetchStudents()
   }, [activeClass])
+
+  const handleRemoveStudent = async (studentId: string) => {
+    if (!confirm('Студентті сыныптан шығаруға сенімдісіз бе?')) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/${activeClass.id}/students/${studentId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setStudents(prev => prev.filter(s => s.id !== studentId));
+        if (selectedStudent?.id === studentId) setSelectedStudent(null);
+      }
+    } catch {
+      alert('Қате кетті');
+    }
+  }
 
   // Listen to live biometric updates
   useEffect(() => {
@@ -400,8 +415,16 @@ export default function Teacher() {
                 animate={{ x: 0, opacity: 1 }}
                 className="card text-center"
               >
-                <div className="flex justify-end">
-                  <div className={`w-2.5 h-2.5 rounded-full ${selectedStudent.online ? 'bg-success' : 'bg-gray-300'}`} />
+                <div className="flex justify-between items-start mb-1">
+                  <div className="w-8" /> {/* Spacer */}
+                  <div className={`w-2.5 h-2.5 rounded-full mt-2 ${selectedStudent.online ? 'bg-success' : 'bg-gray-300'}`} title={selectedStudent.online ? 'ОНЛАЙН' : 'ОФЛАЙН'} />
+                  <button 
+                    onClick={() => handleRemoveStudent(selectedStudent.id)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-danger hover:bg-red-50 transition-colors"
+                    title="Сыныптан шығару"
+                  >
+                    <UserMinus size={16} />
+                  </button>
                 </div>
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-plum-pale to-soft-pink flex items-center justify-center mx-auto mb-3">
                   <User size={36} className="text-plum" />
