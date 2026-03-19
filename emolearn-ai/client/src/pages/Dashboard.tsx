@@ -99,20 +99,26 @@ export default function Dashboard() {
       if (Math.abs(bpm - lastData.bpm) < 3 && Math.abs(cognitive - lastData.cognitive) < 3) return
       lastData = { bpm, cognitive }
       setIsAnalyzing(true)
+      const apiBase = import.meta.env.VITE_API_URL || window.location.origin
+      const url = `${apiBase}/api/chat/analyze`
+      
       try {
-        const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/chat/analyze', {
+        const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ bpm, attentionLevel: cognitive, recentErrors: 0 })
         })
+        
         if (res.ok) {
           const data = await res.json()
           if (data.emotion) setEmotion(data.emotion, 95.5)
           if (data.cognitiveLoad) setCognitive(parseInt(data.cognitiveLoad))
           if (data.reason) setAiRecommendation(data.reason)
+        } else {
+          console.warn(`Telemetry analysis failed (${res.status}):`, url)
         }
       } catch (err) {
-        console.error('Failed to analyze telemetry', err)
+        console.error('Failed to analyze telemetry:', { url, error: err })
       } finally { setIsAnalyzing(false) }
     }
     const timeout = setTimeout(analyzeTelemetry, 2000)

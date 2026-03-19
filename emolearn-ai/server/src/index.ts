@@ -19,9 +19,13 @@ initTelegramBot()
 
 export const app = express()
 const httpServer = createServer(app)
-const allowedOrigins = process.env.CLIENT_URL 
-  ? [process.env.CLIENT_URL, 'https://inkuliz.vercel.app', 'http://localhost:5173'] 
-  : ['https://inkuliz.vercel.app', 'http://localhost:5173'];
+const allowedOrigins = [
+  'https://inkuliz.vercel.app',
+  'https://inkuliz.kz',
+  'https://www.inkuliz.kz',
+  'http://localhost:5173',
+  process.env.CLIENT_URL
+].filter(Boolean) as string[];
 
 const io = new Server(httpServer, {
   cors: { origin: allowedOrigins, methods: ['GET', 'POST'] }
