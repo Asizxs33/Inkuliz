@@ -94,7 +94,7 @@ export default function SignLanguage() {
   const ekgGenRef = useRef(new EKGVisualizer())
   const particlesRef = useRef<Array<{x: number, y: number, life: number, color: string}>>([])
   const rafRef = useRef<number>(0)
-  const latestLandmarks = useRef<Landmark[] | null>(null)
+  const latestLandmarks = useRef<Landmark[][] | null>(null)
 
   const isStress = ['АШУЛЫ', 'ҚОРЫҚҚАН', 'ЖИІРКЕНГЕН'].includes(emotion)
 
@@ -110,8 +110,7 @@ export default function SignLanguage() {
   useEffect(() => {
     if (handLandmarks && handLandmarks.length > 0) {
       setHandDetected(true)
-      const landmarks = handLandmarks[0]
-      latestLandmarks.current = landmarks
+      latestLandmarks.current = handLandmarks
 
       // Spawn WOW Particle
       handLandmarks.forEach((hand: any) => {
