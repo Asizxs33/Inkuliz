@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { X, Brain, CheckCircle2, Trash2 } from 'lucide-react'
+import { X, Brain, CheckCircle2, Trash2, Video } from 'lucide-react'
 import { ML_CLASSIFIER } from '../lib/mlClassifier'
 import { useBiometricStore } from '../store/biometricStore'
 import { DICTIONARY_DATA } from '../lib/dictionaryData'
+import type { Landmark } from '../lib/gestureRecognizer'
 
 interface Props {
   onClose: () => void
@@ -12,23 +13,50 @@ interface Props {
 export default function AITrainerModal({ onClose }: Props) {
   const [selectedWord, setSelectedWord] = useState(DICTIONARY_DATA[0].wordKz)
   const [isRecording, setIsRecording] = useState(false)
+  const [progress, setProgress] = useState(0)
   const [trainedCount, setTrainedCount] = useState(0)
   
   const { handLandmarks, isCameraEnabled } = useBiometricStore()
+  const latestLandmarksRef = useRef<Landmark[] | null>(null)
+
+  useEffect(() => {
+    if (handLandmarks && handLandmarks.length > 0) {
+      latestLandmarksRef.current = handLandmarks[0]
+    }
+  }, [handLandmarks])
 
   useEffect(() => {
     setTrainedCount(ML_CLASSIFIER.getCounts()[selectedWord] || 0)
   }, [selectedWord])
 
-  const handleTrain = () => {
-    if (!handLandmarks || handLandmarks.length === 0) return
+  const handleTrainStart = () => {
+    if (!isCameraEnabled) return
     setIsRecording(true)
+    setProgress(0)
     
-    // Add example vector
-    ML_CLASSIFIER.addExample(selectedWord, handLandmarks[0])
-    setTrainedCount(prev => prev + 1)
+    const sequence: Landmark[][] = []
+    let frames = 0
+    const TARGET_FRAMES = 25 // 25 frames ~ 1.5 seconds at ~15fps
     
-    setTimeout(() => setIsRecording(false), 300)
+    const interval = setInterval(() => {
+       if (latestLandmarksRef.current) {
+         sequence.push([...latestLandmarksRef.current])
+       }
+       frames++
+       setProgress((frames / TARGET_FRAMES) * 100)
+       
+       if (frames >= TARGET_FRAMES) {
+         clearInterval(interval)
+         finishTraining(sequence)
+       }
+    }, 60)
+  }
+
+  const finishTraining = (sequence: Landmark[][]) => {
+     ML_CLASSIFIER.addSequenceExample(selectedWord, sequence)
+     setTrainedCount(prev => prev + 1)
+     setIsRecording(false)
+     setProgress(0)
   }
 
   const handleClear = () => {
@@ -46,11 +74,11 @@ export default function AITrainerModal({ onClose }: Props) {
         
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 rounded-xl bg-plum/20 flex items-center justify-center shadow-[inset_0_0_20px_rgba(206,126,204,0.3)]">
-            <Brain size={24} className="text-white" />
+            <Brain size={24} className="text-white animate-pulse" />
           </div>
           <div>
-            <h2 className="text-xl font-black text-white">AI Жаттықтыру</h2>
-            <p className="text-xs text-white/60">Кездейсоқ қимылды нейрожеліге қосу</p>
+            <h2 className="text-xl font-black text-white">DTW Модельді Үйрету</h2>
+            <p className="text-xs text-white/60">Қозғалыс траекториясын сақтау</p>
           </div>
         </div>
 
@@ -68,42 +96,50 @@ export default function AITrainerModal({ onClose }: Props) {
              </select>
            </div>
            
-           <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
-              <div>
-                 <p className="text-sm font-bold text-white">Үйретілген векторлар</p>
-                 <p className="text-xs text-success">ML Model: Векторлық Косинус</p>
+           <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between relative overflow-hidden">
+              {isRecording && (
+                <div 
+                  className="absolute left-0 top-0 bottom-0 bg-rose/20 transition-all duration-[60ms] ease-linear" 
+                  style={{ width: `${progress}%` }} 
+                />
+              )}
+              <div className="relative z-10">
+                 <p className="text-sm font-bold text-white">Видео-тізбектер</p>
+                 <p className="text-xs text-success">ML Model: Dynamic Time Warping</p>
               </div>
-              <div className="text-3xl font-black text-plum">{trainedCount}</div>
+              <div className="text-3xl font-black text-plum relative z-10">{trainedCount}</div>
            </div>
 
            {!isCameraEnabled && (
               <p className="text-xs text-danger font-bold text-center bg-danger/10 py-2 rounded-lg">Камера қосылмаған!</p>
            )}
-           {isCameraEnabled && !handLandmarks && (
-              <p className="text-xs text-amber-500 font-bold text-center bg-amber-500/10 py-2 rounded-lg">Камераға қолыңызды көрсетіңіз!</p>
-           )}
 
            <div className="flex gap-2 pt-4">
              <button 
                onClick={handleClear}
-               disabled={trainedCount === 0}
+               disabled={trainedCount === 0 || isRecording}
                title="Тазалау"
                className="px-4 py-4 rounded-xl border border-rose text-rose font-bold text-sm hover:bg-rose/10 disabled:opacity-30 disabled:border-white/10 disabled:text-white/30 transition-colors flex items-center gap-2"
              >
                <Trash2 size={18} />
              </button>
              <button
-               onClick={handleTrain}
-               disabled={!isCameraEnabled || !handLandmarks || handLandmarks.length === 0}
-               className={`flex-1 py-4 rounded-xl font-bold text-sm text-white flex justify-center items-center gap-2 transition-all shadow-lg ${
-                 isRecording ? 'bg-success scale-95 shadow-success/40' : 'bg-gradient-to-r from-plum to-rose hover:opacity-90 shadow-plum/40'
-               } disabled:opacity-50 disabled:grayscale`}
+               onClick={handleTrainStart}
+               disabled={!isCameraEnabled || isRecording}
+               className={`relative overflow-hidden flex-1 py-4 rounded-xl font-bold text-sm text-white flex justify-center items-center gap-2 transition-all shadow-lg ${
+                 isRecording ? 'bg-danger scale-95 shadow-danger/40' : 'bg-gradient-to-r from-plum to-rose hover:opacity-90 shadow-plum/40'
+               } disabled:opacity-50`}
              >
-                {isRecording ? <CheckCircle2 size={18} /> : <span>Нейрожеліге Сақтау (Train)</span>}
+                {isRecording ? (
+                  <>
+                    <Video size={18} className="animate-pulse" />
+                    <span>Жазылуда ({Math.round(progress)}%)</span>
+                  </>
+                ) : <span>Қимылды Жазу (1.5 сек)</span>}
              </button>
            </div>
            <p className="text-[10px] text-center text-white/40 mt-2 leading-tight">
-             <b>Лайфхак:</b> Қолыңызды басқаша бұрыштардан ұстап тұрып, батырманы 5-10 рет басыңыз. Сонда AI 100% дәл танитын болады.
+             <b>Нұсқау:</b> Батырманы басқан соң 1.5 секунд бойы камераға нағыз "Шай" немесе "Кітап" қимылын (қозғалыспен) жасап үлгеріңіз.
            </p>
         </div>
       </motion.div>

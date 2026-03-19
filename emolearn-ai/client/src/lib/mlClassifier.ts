@@ -1,10 +1,7 @@
 import type { Landmark } from './gestureRecognizer'
 
 /**
- * Normalizes a set of 21 3D landmarks into a 63-dimensional feature vector.
- * - Centers all points relative to the wrist (landmark 0)
- * - Scales all points so the maximum distance from wrist is 1.0
- * This makes the embedding scale and translation invariant.
+ * Normalizes 21 landmarks into a 63-dimensional feature vector.
  */
 export function normalizeLandmarks(landmarks: Landmark[]): number[] {
   if (!landmarks || landmarks.length !== 21) return []
@@ -12,7 +9,6 @@ export function normalizeLandmarks(landmarks: Landmark[]): number[] {
   const wrist = landmarks[0]
   let maxDist = 0
 
-  // First pass: find max distance from wrist
   for (let i = 1; i < landmarks.length; i++) {
     const dist = Math.sqrt(
       Math.pow(landmarks[i].x - wrist.x, 2) +
@@ -21,11 +17,8 @@ export function normalizeLandmarks(landmarks: Landmark[]): number[] {
     )
     if (dist > maxDist) maxDist = dist
   }
-
-  // Prevent division by zero
   if (maxDist === 0) maxDist = 1
 
-  // Second pass: normalize
   const vector: number[] = []
   for (let i = 0; i < landmarks.length; i++) {
     vector.push((landmarks[i].x - wrist.x) / maxDist)
@@ -36,44 +29,74 @@ export function normalizeLandmarks(landmarks: Landmark[]): number[] {
   return vector
 }
 
-/**
- * Calculates Cosine Similarity between two vectors.
- * Returns a value between -1 and 1. (1 means identical direction)
- */
-export function cosineSimilarity(vecA: number[], vecB: number[]): number {
-  if (vecA.length !== vecB.length || vecA.length === 0) return 0
-  
-  let dotProduct = 0
-  let normA = 0
-  let normB = 0
-  
+export function euclideanDistance(vecA: number[], vecB: number[]): number {
+  let sum = 0
   for (let i = 0; i < vecA.length; i++) {
-    dotProduct += vecA[i] * vecB[i]
-    normA += vecA[i] * vecA[i]
-    normB += vecB[i] * vecB[i]
+    sum += Math.pow(vecA[i] - vecB[i], 2)
   }
-  
-  if (normA === 0 || normB === 0) return 0
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB))
-}
-
-export interface MLPrediction {
-  wordKz: string;
-  confidence: number;
-}
-
-export interface MLTrainingExample {
-  wordKz: string;
-  vector: number[];
+  return Math.sqrt(sum)
 }
 
 /**
- * Instant K-Nearest Neighbors Classifier specialized for relative landmarks.
- * Stores embeddings in LocalStorage to persist custom trained words.
+ * Normalizes a sequence of frames into vectors.
+ * Adds Velocity (dx, dy) to capture motion trajectory.
  */
-export class GestureKNN {
-  private examples: MLTrainingExample[] = []
-  private readonly STORAGE_KEY = 'emolearn_ml_gestures'
+export function normalizeSequence(sequence: Landmark[][]): number[][] {
+  const result: number[][] = []
+  const VELOCITY_WEIGHT = 7.0 // Emphasize motion trajectory heavily
+
+  for (let i = 0; i < sequence.length; i++) {
+    const shapeVec = normalizeLandmarks(sequence[i])
+    if (shapeVec.length === 0) continue
+
+    let dx = 0, dy = 0
+    if (i > 0) {
+      dx = (sequence[i][0].x - sequence[i - 1][0].x) * VELOCITY_WEIGHT
+      dy = (sequence[i][0].y - sequence[i - 1][0].y) * VELOCITY_WEIGHT
+    }
+    
+    shapeVec.push(dx, dy) // 65-dimensional vector: 63 shape + 2 motion
+    result.push(shapeVec)
+  }
+  return result
+}
+
+/**
+ * Dynamic Time Warping (DTW) algorithm
+ * Compares two time-series sequences of varying speeds.
+ * Returns the minimum accumulated distance.
+ */
+export function dtwDistance(seq1: number[][], seq2: number[][]): number {
+  const n = seq1.length
+  const m = seq2.length
+  if (n === 0 || m === 0) return Infinity
+
+  const matrix: number[][] = Array(n + 1).fill(0).map(() => Array(m + 1).fill(Infinity))
+  matrix[0][0] = 0
+
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      const cost = euclideanDistance(seq1[i - 1], seq2[j - 1])
+      matrix[i][j] = cost + Math.min(
+        matrix[i - 1][j],    // insertion
+        matrix[i][j - 1],    // deletion
+        matrix[i - 1][j - 1] // match
+      )
+    }
+  }
+
+  // Normalize by path length
+  return matrix[n][m] / (n + m)
+}
+
+export interface MLTrainingSequence {
+  wordKz: string;
+  sequence: number[][]; // Array of normalized vectors
+}
+
+export class GestureML {
+  private examples: MLTrainingSequence[] = []
+  private readonly STORAGE_KEY = 'emolearn_dtw_sequences'
 
   constructor() {
     this.load()
@@ -84,7 +107,7 @@ export class GestureKNN {
       const data = localStorage.getItem(this.STORAGE_KEY)
       if (data) {
         this.examples = JSON.parse(data)
-        console.log(`[ML] Loaded ${this.examples.length} training examples.`)
+        console.log(`[ML] Loaded ${this.examples.length} sequence examples.`)
       }
     } catch (e) {
       console.warn('[ML] Failed to load dataset', e)
@@ -99,20 +122,14 @@ export class GestureKNN {
     }
   }
 
-  /**
-   * Adds a new training anchor for a word.
-   */
-  public addExample(wordKz: string, landmarks: Landmark[]) {
-    const vector = normalizeLandmarks(landmarks)
-    if (vector.length === 0) return
+  public addSequenceExample(wordKz: string, rawSequence: Landmark[][]) {
+    const sequence = normalizeSequence(rawSequence)
+    if (sequence.length < 5) return // Too short
 
-    this.examples.push({ wordKz, vector })
+    this.examples.push({ wordKz, sequence })
     this.save()
   }
 
-  /**
-   * Clears training data for a specific word.
-   */
   public clearExamples(wordKz: string) {
     this.examples = this.examples.filter(e => e.wordKz !== wordKz)
     this.save()
@@ -126,40 +143,33 @@ export class GestureKNN {
      return counts
   }
 
-  /**
-   * Predicts the closest word using Cosine Similarity.
-   * Only returns a match if similarity > 0.90 (90%)
-   */
-  public predict(landmarks: Landmark[]): MLPrediction | null {
-    if (this.examples.length === 0) return null
+  public predictSequence(rawSequence: Landmark[][]): { wordKz: string, distance: number } | null {
+    if (this.examples.length === 0 || rawSequence.length < 5) return null
 
-    const vector = normalizeLandmarks(landmarks)
-    if (vector.length === 0) return null
+    const liveSequence = normalizeSequence(rawSequence)
+    if (liveSequence.length === 0) return null
 
     let bestMatch = ''
-    let highestSimilarity = -1
+    let minDistance = Infinity
 
     for (const example of this.examples) {
-      const sim = cosineSimilarity(vector, example.vector)
-      if (sim > highestSimilarity) {
-        highestSimilarity = sim
+      const dist = dtwDistance(liveSequence, example.sequence)
+      if (dist < minDistance) {
+        minDistance = dist
         bestMatch = example.wordKz
       }
     }
 
-    // Strict threshold for WOW effect (prevents false positives)
-    // Cosine similarity of 0.90 is roughly a 25-degree cone.
-    // 0.96+ is highly similar.
-    if (highestSimilarity > 0.92) {
+    // Euclidean DTW distance threshold: smaller is better.
+    // 1.2 is a good threshold for 65-dim data where 63 dimensions are bounded by [-1, 1].
+    if (minDistance < 1.3) {
       return {
         wordKz: bestMatch,
-        confidence: highestSimilarity
+        distance: minDistance
       }
     }
-
     return null
   }
 }
 
-// Global Singleton for the App
-export const ML_CLASSIFIER = new GestureKNN()
+export const ML_CLASSIFIER = new GestureML()

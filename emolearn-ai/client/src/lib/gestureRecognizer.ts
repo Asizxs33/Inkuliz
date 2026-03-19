@@ -34,16 +34,32 @@ function angle(a: Landmark, b: Landmark, c: Landmark): number {
 
 import { ML_CLASSIFIER } from './mlClassifier'
 
-export function recognizeGesture(lm: Landmark[]): GestureResult {
-  if (!lm || lm.length < 21) return { word: '—', wordKz: '—', confidence: 0 }
+let sequenceBuffer: Landmark[][] = []
 
-  // 1. ML Classification (Cosine Similarity)
-  const mlPrediction = ML_CLASSIFIER.predict(lm)
-  if (mlPrediction) {
-    return {
-      word: mlPrediction.wordKz.toUpperCase(),
-      wordKz: mlPrediction.wordKz,
-      confidence: Math.round(mlPrediction.confidence * 100) / 100
+export function recognizeGesture(lm: Landmark[]): GestureResult {
+  if (!lm || lm.length < 21) {
+    if (sequenceBuffer.length > 0) sequenceBuffer = []
+    return { word: '—', wordKz: '—', confidence: 0 }
+  }
+
+  // Update rolling buffer
+  sequenceBuffer.push(lm)
+  if (sequenceBuffer.length > 25) {
+     sequenceBuffer.shift()
+  }
+
+  // 1. ML Classification (DTW Sequence Matching)
+  if (sequenceBuffer.length >= 10) {
+    const mlPrediction = ML_CLASSIFIER.predictSequence(sequenceBuffer)
+    if (mlPrediction) {
+      // Clear the buffer after a successful match to allow for a cooldown
+      sequenceBuffer = []
+      return {
+        word: mlPrediction.wordKz.toUpperCase(),
+        wordKz: mlPrediction.wordKz,
+        // Confidence is synthesized from the distance. Threshold is 1.3, so lower distance -> higher conf
+        confidence: Math.round((1.0 - (mlPrediction.distance / 2.0)) * 100) / 100
+      }
     }
   }
 
