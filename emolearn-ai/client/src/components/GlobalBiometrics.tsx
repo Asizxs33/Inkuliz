@@ -90,6 +90,9 @@ export default function GlobalBiometrics() {
 
   // Particle System state
   const particlesRef = useRef<Array<{x: number, y: number, life: number, color: string}>>([])
+  
+  // Custom Audio Alarm
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const setBpm = useBiometricStore(s => s.setBpm)
   const setEmotion = useBiometricStore(s => s.setEmotion)
@@ -122,6 +125,29 @@ export default function GlobalBiometrics() {
       emotionLoadedRef.current = false
     })
   }, [])
+
+  // Initialize and handle Alarm Audio
+  useEffect(() => {
+    // Only works due to Vite serving /public natively on /
+    audioRef.current = new window.Audio('/alert.mp3')
+    audioRef.current.loop = true
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
+    }
+  }, [])
+
+  // Trigger alarm audio play/pause
+  useEffect(() => {
+    if (isSleeping && audioRef.current) {
+      audioRef.current.currentTime = 40
+      audioRef.current.play().catch(e => console.error('Audio play blocked:', e))
+    } else if (!isSleeping && audioRef.current) {
+      audioRef.current.pause()
+    }
+  }, [isSleeping])
 
   const getDevices = useCallback(async () => {
     try {
@@ -492,16 +518,6 @@ export default function GlobalBiometrics() {
             >
               МЕН ОЯНДЫМ!
             </button>
-
-            {/* Hidden audio source via iframe autoplay to bypass some constraints, 
-                e4Cyet8who0 works better for embeds than official copyright videos */}
-            <iframe 
-               width="1" height="1" 
-               src="https://www.youtube.com/embed/e4Cyet8who0?autoplay=1&playsinline=1&start=40" 
-               title="Wake up alarm" 
-               allow="autoplay; encrypted-media; fullscreen; picture-in-picture" 
-               className="absolute opacity-[0.01] pointer-events-none z-0"
-            />
           </motion.div>
         )}
       </AnimatePresence>
