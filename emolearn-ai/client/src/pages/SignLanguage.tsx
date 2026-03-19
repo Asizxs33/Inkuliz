@@ -34,6 +34,32 @@ const CONNECTIONS = [
 
 
 
+class EKGVisualizer {
+  private points: number[] = Array(50).fill(0)
+  private time = 0
+  
+  update(bpm: number) {
+    this.time += 0.1
+    let val = 0
+    if (bpm > 0) {
+      const beatFreq = bpm / 60
+      const phase = (this.time * beatFreq * Math.PI * 2) % (Math.PI * 2)
+      if (phase < 0.2) val = 10 * Math.sin(phase * 15)
+      else if (phase > 0.4 && phase < 0.6) {
+        const p2 = phase - 0.4
+        if (p2 < 0.05) val = -20
+        else if (p2 < 0.1) val = 80
+        else if (p2 < 0.15) val = -30
+        else val = 0
+      }
+      else if (phase > 0.7 && phase < 0.9) val = 15 * Math.sin((phase - 0.7) * 15)
+    }
+    this.points.push(val + (Math.random() * 4 - 2))
+    if (this.points.length > 50) this.points.shift()
+    return this.points
+  }
+}
+
 export default function SignLanguage() {
   const {
     emotion, bpm, confidence: storeConfidence,
@@ -59,8 +85,16 @@ export default function SignLanguage() {
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const ekgRef = useRef<HTMLCanvasElement>(null)
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
   const remoteVideoRef = useRef<HTMLVideoElement>(null)
+
+  const ekgGenRef = useRef(new EKGVisualizer())
+  const particlesRef = useRef<Array<{x: number, y: number, life: number, color: string}>>([])
+  const rafRef = useRef<number>(0)
+  const latestLandmarks = useRef<Landmark[] | null>(null)
+
+  const isStress = ['АШУЛЫ', 'ҚОРЫҚҚАН', 'ЖИІРКЕНГЕН'].includes(emotion)
 
   // Sync video with global stream
   useEffect(() => {
@@ -70,44 +104,23 @@ export default function SignLanguage() {
     }
   }, [globalStream])
 
-  // Drawing and Recognition Effect
+  // Gesture Recognition Effect
   useEffect(() => {
-    if (!canvasRef.current || !isCameraEnabled) return
-    const ctx = canvasRef.current.getContext('2d')
-    if (!ctx) return
-
-    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
-
     if (handLandmarks && handLandmarks.length > 0) {
       setHandDetected(true)
       const landmarks = handLandmarks[0]
+      latestLandmarks.current = landmarks
 
-      // Draw landmarks
-      ctx.save()
-      ctx.translate(canvasRef.current.width, 0)
-      ctx.scale(-1, 1) // Flip for mirror video
-
-      // Draw Connections
-      ctx.strokeStyle = '#FFFFFF'
-      ctx.lineWidth = 2
-      CONNECTIONS.forEach(([i, j]) => {
-        const start = landmarks[i]
-        const end = landmarks[j]
-        ctx.beginPath()
-        ctx.moveTo(start.x * 640, start.y * 480)
-        ctx.lineTo(end.x * 640, end.y * 480)
-        ctx.stroke()
-      })
-
-      // Draw Points
-      landmarks.forEach((pt: any, i: number) => {
-        const fingerIdx = Math.floor((i - 1) / 4)
-        ctx.fillStyle = i === 0 ? '#E8507A' : (FINGER_COLORS[fingerIdx] || '#E8507A')
-        ctx.beginPath()
-        ctx.arc(pt.x * 640, pt.y * 480, 4, 0, Math.PI * 2)
-        ctx.fill()
-      })
-      ctx.restore()
+      // Spawn WOW Particle
+      const indexTip = landmarks[8]
+      if (indexTip) {
+        particlesRef.current.push({
+          x: indexTip.x,
+          y: indexTip.y,
+          life: 1.0,
+          color: isStress ? '#E8507A' : '#A05891'
+        })
+      }
 
       // Gesture Recognition
       const result = recognizeGesture(landmarks)
@@ -125,10 +138,107 @@ export default function SignLanguage() {
       }
     } else {
       setHandDetected(false)
+      latestLandmarks.current = null
       GESTURE_HISTORY.clear()
       setHoldingProgress(0)
     }
-  }, [handLandmarks, isCameraEnabled])
+  }, [handLandmarks, isStress])
+
+  // 60FPS Draw Loop for Smooth Particles & EKG
+  useEffect(() => {
+    if (!isCameraEnabled) return
+
+    const drawLoop = () => {
+      // Draw EKG
+      if (ekgRef.current) {
+        const cvs = ekgRef.current
+        const ctx = cvs.getContext('2d')
+        if (ctx) {
+          cvs.width = cvs.clientWidth
+          cvs.height = cvs.clientHeight
+          const points = ekgGenRef.current.update(bpm || 0)
+          
+          ctx.clearRect(0, 0, cvs.width, cvs.height)
+          ctx.beginPath()
+          const step = cvs.width / points.length
+          for (let i = 0; i < points.length; i++) {
+            const x = i * step
+            const y = cvs.height / 2 - (points[i] * (cvs.height / 200))
+            if (i === 0) ctx.moveTo(x, y)
+            else ctx.lineTo(x, y)
+          }
+          ctx.strokeStyle = '#E8507A'
+          ctx.lineWidth = 2
+          ctx.shadowBlur = 8
+          ctx.shadowColor = '#E8507A'
+          ctx.stroke()
+          ctx.shadowBlur = 0
+        }
+      }
+
+      // Draw Hands + Particles
+      if (canvasRef.current) {
+        const cvs = canvasRef.current
+        const ctx = cvs.getContext('2d')
+        if (ctx) {
+          ctx.clearRect(0, 0, cvs.width, cvs.height)
+
+          // Particles
+          for (let i = particlesRef.current.length - 1; i >= 0; i--) {
+            const p = particlesRef.current[i]
+            p.life -= 0.05
+            if (p.life <= 0) {
+               particlesRef.current.splice(i, 1)
+               continue
+            }
+            const px = cvs.width - (p.x * cvs.width) // mirrored
+            const py = p.y * cvs.height
+            ctx.beginPath()
+            ctx.arc(px, py, 6 * p.life, 0, 2 * Math.PI)
+            ctx.fillStyle = p.color
+            ctx.shadowBlur = 15
+            ctx.shadowColor = p.color
+            ctx.globalAlpha = p.life
+            ctx.fill()
+            ctx.globalAlpha = 1.0
+            ctx.shadowBlur = 0
+          }
+
+          // Skeleton
+          if (latestLandmarks.current) {
+            ctx.save()
+            ctx.translate(cvs.width, 0)
+            ctx.scale(-1, 1)
+            ctx.strokeStyle = '#FFFFFF'
+            ctx.lineWidth = 2
+            
+            CONNECTIONS.forEach(([i, j]) => {
+              const start = latestLandmarks.current![i]
+              const end = latestLandmarks.current![j]
+              ctx.beginPath()
+              ctx.moveTo(start.x * cvs.width, start.y * cvs.height)
+              ctx.lineTo(end.x * cvs.width, end.y * cvs.height)
+              ctx.stroke()
+            })
+            
+            latestLandmarks.current.forEach((pt: any, i: number) => {
+              const fingerIdx = Math.floor((i - 1) / 4)
+              ctx.fillStyle = i === 0 ? '#E8507A' : (FINGER_COLORS[fingerIdx] || '#E8507A')
+              ctx.beginPath()
+              ctx.arc(pt.x * cvs.width, pt.y * cvs.height, 4, 0, Math.PI * 2)
+              ctx.fill()
+            })
+            ctx.restore()
+          }
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(drawLoop)
+    }
+
+    rafRef.current = requestAnimationFrame(drawLoop)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [isCameraEnabled, bpm])
 
   // Placeholder for local FPS (could be synced from Global with a store value)
   useEffect(() => {
@@ -286,7 +396,9 @@ export default function SignLanguage() {
       <div className="flex flex-col gap-4">
 
         {/* Camera + canvas overlay */}
-        <div className="relative rounded-2xl overflow-hidden bg-[#0d0d1a] aspect-video">
+        <div className={`relative rounded-2xl overflow-hidden bg-[#0d0d1a] aspect-video transition-all duration-500 shadow-2xl ${
+          isCameraEnabled && isStress && bpm > 90 ? 'border-[6px] border-rose animate-pulse shadow-[0_0_80px_rgba(232,80,122,0.4)]' : 'border border-white/10'
+        }`}>
           <video
             ref={videoRef}
             className="absolute inset-0 w-full h-full object-cover"
@@ -298,6 +410,16 @@ export default function SignLanguage() {
             className="absolute inset-0 w-full h-full pointer-events-none"
             width={640} height={480}
           />
+
+          {/* EKG Overlay */}
+          {isCameraEnabled && (
+             <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/80 to-transparent flex items-end">
+                <canvas
+                  ref={ekgRef}
+                  className="w-full h-2/3 pointer-events-none opacity-80"
+                />
+             </div>
+          )}
 
           {/* Inactive overlay */}
           {!isCameraEnabled && (
