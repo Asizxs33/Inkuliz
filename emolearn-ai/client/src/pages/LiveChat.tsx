@@ -24,26 +24,28 @@ export default function LiveChat() {
   const [classInfo, setClassInfo] = useState<any>(null)
   const [onlineUsers, setOnlineUsers] = useState<string[]>([])
 
-  // Load class info
+  // Load class info — try student endpoint first, then teacher
   useEffect(() => {
     if (!userId) return
     const fetchClass = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/${userId}`)
-        const data = await res.json()
-        if (data.classes?.length > 0) {
-          setClassInfo(data.classes[0])
-        } else if (data.class) {
-          setClassInfo(data.class)
+        // Try student class first
+        const res1 = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/student/${userId}`)
+        const data1 = await res1.json()
+        if (data1.class) {
+          setClassInfo(data1.class)
+          return
         }
-      } catch {
-        // Student: try to get their class
-        try {
-          const res2 = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/student/${userId}`)
-          const data2 = await res2.json()
-          if (data2.class) setClassInfo(data2.class)
-        } catch {}
-      }
+      } catch {}
+
+      try {
+        // Then try teacher classes
+        const res2 = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/${userId}`)
+        const data2 = await res2.json()
+        if (data2.classes?.length > 0) {
+          setClassInfo(data2.classes[0])
+        }
+      } catch {}
     }
     fetchClass()
   }, [userId])
