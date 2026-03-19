@@ -5,6 +5,7 @@ import { rPPGProcessor } from '../lib/rppg'
 import { EmotionDetector } from '../lib/emotionDetector'
 import { emitBiometricUpdate } from '../lib/socket'
 import { Camera, RefreshCw, CameraOff, Activity } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 // Singleton MediaPipe loader
 let mpLoaded = false
@@ -103,6 +104,10 @@ export default function GlobalBiometrics() {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([])
   const [currentDeviceId, setCurrentDeviceId] = useState<string>('')
   const loadingRef = useRef(false)
+  
+  // Sleep Detection
+  const [isSleeping, setIsSleeping] = useState(false)
+  const sleepCounterRef = useRef<number>(0)
   
   // Store local copies for render loop safely
   const currentBpmRef = useRef<number>(0)
@@ -273,6 +278,16 @@ export default function GlobalBiometrics() {
               setEmotionKz(emotionResult.emotionKz)
               setCognitive(emotionResult.cognitive)
               isStressRef.current = ['АШУЛЫ', 'ҚОРЫҚҚАН', 'ЖИІРКЕНГЕН'].includes(emotionResult.emotionKz)
+              
+              // Sleep Detection Logic - Trigger Kairat Nurtas if sleepy for 3 frames!
+              if (['ШАРШАҒАН', 'ЗЕРІККЕН', 'БЕЙҚАМ', 'ЖАЛЫҚҚАН'].includes(emotionResult.emotionKz)) {
+                sleepCounterRef.current += 1
+                if (sleepCounterRef.current >= 3 && !isSleeping) {
+                   setIsSleeping(true)
+                }
+              } else {
+                sleepCounterRef.current = 0
+              }
             }
           }
 
@@ -450,6 +465,44 @@ export default function GlobalBiometrics() {
            )}
          </div>
       </div>
+      
+      {/* WAKE UP ALARM (Kairat Nurtas) */}
+      <AnimatePresence>
+        {isSleeping && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-4 pulse-ring"
+          >
+            <h1 className="text-6xl md:text-9xl font-black text-rose uppercase tracking-widest animate-pulse mb-8 drop-shadow-[0_0_30px_rgba(232,80,122,0.8)]">
+              ОЯН!
+            </h1>
+            <p className="text-white text-xl md:text-2xl font-bold mb-12 text-center">Сіз ұйықтап қалдыңыз ба? Қайрат Нұртас сізді оятады! 🎸</p>
+            
+            <button 
+              onClick={() => {
+                setIsSleeping(false)
+                sleepCounterRef.current = 0
+              }}
+              className="bg-rose text-white text-xl font-black px-12 py-6 rounded-full shadow-[0_0_40px_rgba(232,80,122,0.6)] hover:scale-105 active:scale-95 transition-all"
+            >
+              МЕН ОЯНДЫМ!
+            </button>
+
+            {/* Hidden audio source via iframe autoplay to bypass some constraints, 
+                tM0sTNtWDiI is 'Ауырмайды жүрек', adding allow=autoplay */}
+                {/* 1c_jP7A8V-A is specific popular clip if needed */}
+            <iframe 
+               width="0" height="0" 
+               src="https://www.youtube.com/embed/tM0sTNtWDiI?autoplay=1" 
+               title="Wake up alarm" 
+               allow="autoplay; encrypted-media" 
+               className="hidden"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }
