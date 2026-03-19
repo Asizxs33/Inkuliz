@@ -129,7 +129,14 @@ export default function SignLanguage() {
       const result = recognizeGesture(handLandmarks)
       if (result) {
         setGestureResult(result)
-        const histResult = GESTURE_HISTORY.push(result.wordKz)
+        
+        let histResult;
+        if (result.isMlMatch) {
+          histResult = GESTURE_HISTORY.forceUnlock(result.wordKz)
+        } else {
+          histResult = GESTURE_HISTORY.push(result.wordKz)
+        }
+
         setHoldingProgress(histResult.progress)
         
         if (histResult.isUnlocked && histResult.word && histResult.word !== '...') {

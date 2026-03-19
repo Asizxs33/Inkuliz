@@ -11,7 +11,7 @@
  */
 
 export interface Landmark { x: number; y: number; z: number }
-export interface GestureResult { word: string; wordKz: string; confidence: number }
+export interface GestureResult { word: string; wordKz: string; confidence: number; isMlMatch?: boolean }
 
 // Returns true if a finger tip is extended (tip above pip, i.e., lower y)
 function isFingerExtended(lm: Landmark[], tip: number, pip: number): boolean {
@@ -58,7 +58,8 @@ export function recognizeGesture(hands: Landmark[][]): GestureResult {
         word: mlPrediction.wordKz.toUpperCase(),
         wordKz: mlPrediction.wordKz,
         // Confidence is synthesized from the distance. Threshold is 1.3, so lower distance -> higher conf
-        confidence: Math.round((1.0 - (mlPrediction.distance / 2.0)) * 100) / 100
+        confidence: Math.round((1.0 - (mlPrediction.distance / 2.0)) * 100) / 100,
+        isMlMatch: true
       }
     }
   }
@@ -140,6 +141,14 @@ export class GestureHistory {
 
   constructor(requiredFrames = 10) { 
     this.requiredFrames = requiredFrames 
+  }
+
+  forceUnlock(word: string): GestureHistoryResult {
+    this.currentWord = word
+    this.lastLockedWord = word
+    this.consecutiveFrames = this.requiredFrames
+    this.cooldownFrames = 30 // ~2-3 seconds cooldown at 10-15fps
+    return { word: word, progress: 100, isUnlocked: true }
   }
 
   push(word: string): GestureHistoryResult {
