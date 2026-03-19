@@ -11,7 +11,6 @@ const studentItems = [
   { to: '/analytics', icon: BarChart3, label: 'Аналитика' },
   { to: '/dictionary', icon: BookOpen, label: 'Сөздік' },
   { to: '/ai-tutor', icon: Sparkles, label: 'AI Репетитор' },
-  { to: '/live-chat', icon: MessageSquare, label: 'Сұхбат' },
   { to: '/profile', icon: User, label: 'Профиль' },
 ]
 

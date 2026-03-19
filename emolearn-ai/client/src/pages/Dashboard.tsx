@@ -374,8 +374,20 @@ export default function Dashboard() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ student_id: userId, invite_code: code })
                   })
-                  if (res.ok) { showToast('Сыныпқа сәтті қосылдыңыз!', 'success'); input.value = '' }
-                  else { const err = await res.json(); showToast(err.error || 'Қате пайда болды', 'error') }
+                  if (res.ok) {
+                    const data = await res.json().catch(() => ({}))
+                    const className = data.class_name || data.name || `Сынып ${code}`
+                    // Save to localStorage for Profile
+                    try {
+                      const existing = JSON.parse(localStorage.getItem('emolearn_classes') || '[]')
+                      if (!existing.includes(className)) {
+                        existing.push(className)
+                        localStorage.setItem('emolearn_classes', JSON.stringify(existing))
+                      }
+                    } catch {}
+                    showToast(`"${className}" сыныбына қосылдыңыз!`, 'success')
+                    input.value = ''
+                  } else { const err = await res.json(); showToast(err.error || 'Қате пайда болды', 'error') }
                 } catch { showToast('Серверге қосылу қатесі', 'error') }
               }}
               className="flex gap-2"
