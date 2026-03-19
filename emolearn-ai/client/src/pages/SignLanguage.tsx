@@ -114,15 +114,17 @@ export default function SignLanguage() {
       latestLandmarks.current = landmarks
 
       // Spawn WOW Particle
-      const indexTip = landmarks[8]
-      if (indexTip) {
-        particlesRef.current.push({
-          x: indexTip.x,
-          y: indexTip.y,
-          life: 1.0,
-          color: isStress ? '#E8507A' : '#A05891'
-        })
-      }
+      handLandmarks.forEach((hand: any) => {
+        const indexTip = hand[8]
+        if (indexTip) {
+          particlesRef.current.push({
+            x: indexTip.x,
+            y: indexTip.y,
+            life: 1.0,
+            color: isStress ? '#E8507A' : '#A05891'
+          })
+        }
+      })
 
       // Gesture Recognition (Pass all hands to support Dual-Hand ML)
       const result = recognizeGesture(handLandmarks)
@@ -207,28 +209,31 @@ export default function SignLanguage() {
           }
 
           // Skeleton
-          if (latestLandmarks.current) {
+          if (latestLandmarks.current && latestLandmarks.current.length > 0) {
             ctx.save()
             ctx.translate(cvs.width, 0)
             ctx.scale(-1, 1)
-            ctx.strokeStyle = '#FFFFFF'
-            ctx.lineWidth = 2
             
-            CONNECTIONS.forEach(([i, j]) => {
-              const start = latestLandmarks.current![i]
-              const end = latestLandmarks.current![j]
-              ctx.beginPath()
-              ctx.moveTo(start.x * cvs.width, start.y * cvs.height)
-              ctx.lineTo(end.x * cvs.width, end.y * cvs.height)
-              ctx.stroke()
-            })
-            
-            latestLandmarks.current.forEach((pt: any, i: number) => {
-              const fingerIdx = Math.floor((i - 1) / 4)
-              ctx.fillStyle = i === 0 ? '#E8507A' : (FINGER_COLORS[fingerIdx] || '#E8507A')
-              ctx.beginPath()
-              ctx.arc(pt.x * cvs.width, pt.y * cvs.height, 4, 0, Math.PI * 2)
-              ctx.fill()
+            latestLandmarks.current.forEach((hand: any) => {
+              ctx.strokeStyle = '#FFFFFF'
+              ctx.lineWidth = 2
+              
+              CONNECTIONS.forEach(([i, j]) => {
+                const start = hand[i]
+                const end = hand[j]
+                ctx.beginPath()
+                ctx.moveTo(start.x * cvs.width, start.y * cvs.height)
+                ctx.lineTo(end.x * cvs.width, end.y * cvs.height)
+                ctx.stroke()
+              })
+              
+              hand.forEach((pt: any, i: number) => {
+                const fingerIdx = Math.floor((i - 1) / 4)
+                ctx.fillStyle = i === 0 ? '#E8507A' : (FINGER_COLORS[fingerIdx] || '#E8507A')
+                ctx.beginPath()
+                ctx.arc(pt.x * cvs.width, pt.y * cvs.height, 4, 0, Math.PI * 2)
+                ctx.fill()
+              })
             })
             ctx.restore()
           }

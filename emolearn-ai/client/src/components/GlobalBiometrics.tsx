@@ -156,8 +156,8 @@ export default function GlobalBiometrics() {
       setHandLandmarks(results.multiHandLandmarks)
       
       // Spawn WOW Particles if hands detected
-      if (results.multiHandLandmarks[0]) {
-        const indexTip = results.multiHandLandmarks[0][8]
+      results.multiHandLandmarks.forEach((hand: any) => {
+        const indexTip = hand[8]
         if (indexTip) {
           particlesRef.current.push({
             x: indexTip.x,
@@ -166,7 +166,7 @@ export default function GlobalBiometrics() {
             color: isStressRef.current ? '#E8507A' : '#A05891'
           })
         }
-      }
+      })
     } else {
       setHandLandmarks(null)
     }
@@ -339,7 +339,7 @@ export default function GlobalBiometrics() {
             locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
           })
           hands.setOptions({ 
-            maxNumHands: 1, 
+            maxNumHands: 2, 
             modelComplexity: 1,
             minDetectionConfidence: 0.7,
             minTrackingConfidence: 0.7 
