@@ -19,33 +19,83 @@ export const DICTIONARY_CATEGORIES = [
   { id: 'school', label: 'Мектеп', iconName: 'GraduationCap' },
   { id: 'numbers', label: 'Сандар', iconName: 'Hash' },
   { id: 'colors', label: 'Түстер', iconName: 'Palette' },
+  { id: 'emotions', label: 'Сезімдер', iconName: 'Heart' },
+  { id: 'food', label: 'Тағам', iconName: 'Apple' },
+  { id: 'bookmarks', label: 'Сақталған', iconName: 'Bookmark' },
 ]
 
 export const DICTIONARY_DATA: DictionaryWord[] = [
-  // Негізгі
-  { id: 'w1', wordKz: 'Сәлем', transliteration: 'Salem (Сәлем)', category: 'basic', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Күнделікті амандасу үшін қолданылады. Қолды бос ұстап, алақанды қаратып бұлғау керек.', gesture: 'Ашық алақан', emoji: '👋', animation: 'wave', gifUrl: 'https://media.giphy.com/media/l41Ys1fQky5raqvMQ/giphy.gif' },
-  { id: 'w2', wordKz: 'Жақсы', transliteration: 'Zhaqsy (Жақсы)', category: 'basic', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Бір нәрсе көңіліңізден шыққанда немесе келісім білдіргенде.', gesture: 'Бас бармақ жоғары', emoji: '👍', animation: 'bounce', gifUrl: 'https://media.giphy.com/media/26FPEB9Kpq7gGtoQ0/giphy.gif' },
-  { id: 'w3', wordKz: 'Рахмет', transliteration: 'Rakhmet (Рахмет/Рақмет)', category: 'basic', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Ризашылық, алғыс білдіру үшін қолданылады.', gesture: 'OK белгісі', emoji: '👌', animation: 'pulse', gifUrl: 'https://media.giphy.com/media/3o7TKLdB2Z2Sls2h9K/giphy.gif' },
-  { id: 'w4', wordKz: 'Мен', transliteration: 'Men (Мен)', category: 'basic', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Өзін көрсету немесе өзі туралы айтқанда. Сұқ саусақпен өзін көрсету.', gesture: 'Сұқ саусақ', emoji: '☝️', animation: 'bounce' },
-  { id: 'w5', wordKz: 'Сіз', transliteration: 'Siz (Сіз)', category: 'basic', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Сұхбаттасушыға құрметпен жүгіну.', gesture: 'V белгісі', emoji: '👉', animation: 'pulse' },
-  { id: 'w6', wordKz: 'Сүйемін', transliteration: 'Suıemin (Сүйемін/Жақсы көремін)', category: 'basic', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Махаббат, жылы сезім білдіру үшін (ILY белгісі).', gesture: 'ILY белгісі', emoji: '🤟', animation: 'pulse' },
-  { id: 'w7', wordKz: 'Стоп', transliteration: 'Stop (Тоқта)', category: 'basic', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Ескерту, тоқтату мағынасында. Қолды жұдырық түрінде түю.', gesture: 'Жұдырық', emoji: '✊', animation: 'shake' },
-  { id: 'w8', wordKz: 'Телефон', transliteration: 'Telefon (Телефон)', category: 'basic', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Қоңырау шалу, сөйлесу. Шака белгісімен ауызға жақындату.', gesture: 'Шака белгісі', emoji: '🤙', animation: 'shake' },
-  
-  // Отбасы
-  { id: 'w9', wordKz: 'Ана', transliteration: 'Ana (Ана)', category: 'family', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Отбасындағы ең жақын адам. Бас бармақты иекке тигізіп, саусақтарды ашық ұстау.', gesture: 'Ашық алақан (иекке)', emoji: '👩‍👧', animation: 'bounce' },
-  { id: 'w10', wordKz: 'Әке', transliteration: 'Ake (Әке)', category: 'family', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Отбасының тірегі. Бас бармақты маңдайға тигізіп, саусақтарды ашық ұстау.', gesture: 'Ашық алақан (маңдайға)', emoji: '👨‍👦', animation: 'bounce' },
-  
-  // Мектеп
-  { id: 'w11', wordKz: 'Кітап', transliteration: 'Kitap (Кітап)', category: 'school', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Білім бұлағы, оқуға арналған. Екі алақанды ашып жүйелі түрде біріктіру.', gesture: 'Кітап ашу', emoji: '📖', animation: 'pulse' },
-  { id: 'w12', wordKz: 'Мұғалім', transliteration: 'Mugalim (Мұғалім)', category: 'school', difficulty: 'ҚИЫН', color: '#EF4444', description: 'Оқытушы, білім беруші тұлға. Екі қолмен оқыту қимылын көрсету.', gesture: 'Жұдырық (алға)', emoji: '🧑‍🏫', animation: 'wave' },
-  
-  // Сандар
-  { id: 'w13', wordKz: 'Бір', transliteration: 'Bir (Бір)', category: 'numbers', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Сан санау басы.', gesture: 'Сұқ саусақ', emoji: '1️⃣', animation: 'pulse' },
-  { id: 'w14', wordKz: 'Екі', transliteration: 'Eki (Екі)', category: 'numbers', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Екінші сан.', gesture: 'V белгісі', emoji: '2️⃣', animation: 'pulse' },
-  { id: 'w15', wordKz: 'Үш', transliteration: 'Ush (Үш)', category: 'numbers', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Үшінші сан. Үш саусақты көтеру.', gesture: 'W белгісі', emoji: '3️⃣', animation: 'pulse' },
-  
-  // Түстер
-  { id: 'w16', wordKz: 'Қызыл', transliteration: 'Qyzyl (Қызыл)', category: 'colors', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Ерінді сұқ саусақпен төмен қарай бір рет сипау.', gesture: 'Сұқ саусақ', emoji: '🔴', animation: 'pulse' },
-  { id: 'w17', wordKz: 'Көк', transliteration: 'Kok (Көк)', category: 'colors', difficulty: 'ОРТАША', color: '#F59E0B', description: 'B (Би) әрпін жасап, қолды оңға-солға бұлғау.', gesture: 'Ашық алақан', emoji: '🔵', animation: 'wave' },
+  // ═══════════════ НЕГІЗГІ (15) ═══════════════
+  { id: 'w1',  wordKz: 'Сәлем',     transliteration: 'Salem',        category: 'basic', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Күнделікті амандасу. Қолды бос ұстап, алақанды қаратып бұлғау.',                    gesture: 'Ашық алақан',          emoji: '👋', animation: 'wave',   gifUrl: 'https://media.giphy.com/media/l41Ys1fQky5raqvMQ/giphy.gif' },
+  { id: 'w2',  wordKz: 'Жақсы',     transliteration: 'Zhaqsy',       category: 'basic', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Келісім, мақұлдау. Бас бармақты жоғары қарату.',                                    gesture: 'Бас бармақ жоғары',    emoji: '👍', animation: 'bounce', gifUrl: 'https://media.giphy.com/media/26FPEB9Kpq7gGtoQ0/giphy.gif' },
+  { id: 'w3',  wordKz: 'Рахмет',    transliteration: 'Rakhmet',      category: 'basic', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Алғыс білдіру. Иекке тигізілген алақанды алға қарай жіберу.',                      gesture: 'OK белгісі',           emoji: '👌', animation: 'pulse',  gifUrl: 'https://media.giphy.com/media/3o7TKLdB2Z2Sls2h9K/giphy.gif' },
+  { id: 'w4',  wordKz: 'Мен',       transliteration: 'Men',          category: 'basic', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Өзін көрсету. Сұқ саусақпен кеудеге нұсқау.',                                     gesture: 'Сұқ саусақ',           emoji: '☝️', animation: 'bounce' },
+  { id: 'w5',  wordKz: 'Сіз',       transliteration: 'Siz',          category: 'basic', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Сұхбаттасушыға құрметпен жүгіну. Саусақпен оған қарату.',                        gesture: 'V белгісі',            emoji: '👉', animation: 'pulse' },
+  { id: 'w6',  wordKz: 'Сүйемін',   transliteration: 'Suıemin',      category: 'basic', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Махаббат білдіру. Бас бармақ, сұқ саусақ, кішкене саусақ жоғары.',               gesture: 'ILY белгісі',          emoji: '🤟', animation: 'pulse' },
+  { id: 'w7',  wordKz: 'Стоп',      transliteration: 'Stop',         category: 'basic', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Тоқтату мағынасы. Алақанды алға қарату.',                                         gesture: 'Жұдырық',              emoji: '✊', animation: 'shake' },
+  { id: 'w8',  wordKz: 'Телефон',   transliteration: 'Telefon',      category: 'basic', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Қоңырау шалу. Шака белгісімен құлаққа жақындату.',                                gesture: 'Шака белгісі',         emoji: '🤙', animation: 'shake' },
+  { id: 'w9',  wordKz: 'Иә',        transliteration: 'Iä',           category: 'basic', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Келісу, растау. Жұдырықпен бас изеу қимылын жасау.',                               gesture: 'Жұдырық (бас изеу)',    emoji: '✅', animation: 'bounce' },
+  { id: 'w10', wordKz: 'Жоқ',       transliteration: 'Zhoq',         category: 'basic', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Бас тарту. Сұқ саусақты оңға-солға бұлғау.',                                     gesture: 'Сұқ саусақ (бұлғау)',   emoji: '❌', animation: 'shake' },
+  { id: 'w11', wordKz: 'Кешіріңіз', transliteration: 'Keshiriñiz',   category: 'basic', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Кешірім сұрау. Жұдырықпен кеудені айналдыру.',                                   gesture: 'Жұдырық (кеуде)',      emoji: '🙏', animation: 'pulse' },
+  { id: 'w12', wordKz: 'Көмек',     transliteration: 'Kömek',        category: 'basic', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Көмек сұрау. Жұдырықты ашық алақанға қою.',                                      gesture: 'Жұдырық + алақан',     emoji: '🆘', animation: 'bounce' },
+  { id: 'w13', wordKz: 'Достық',    transliteration: 'Dostyq',       category: 'basic', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Достық. Екі сұқ саусақты байланыстыру.',                                          gesture: 'Екі саусақ',           emoji: '🤝', animation: 'pulse' },
+  { id: 'w14', wordKz: 'Уақыт',     transliteration: 'Uaqyt',        category: 'basic', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Сағатты көрсету. Білекке сұқ саусақпен нұсқау.',                                  gesture: 'Сұқ саусақ (білек)',    emoji: '⏰', animation: 'pulse' },
+  { id: 'w15', wordKz: 'Жүр',       transliteration: 'Zhür',         category: 'basic', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Шақыру, жүру. Қолмен өзіңе қарай ишарат жасау.',                                 gesture: 'Қол (шақыру)',         emoji: '🚶', animation: 'wave' },
+
+  // ═══════════════ ОТБАСЫ (8) ═══════════════
+  { id: 'w16', wordKz: 'Ана',       transliteration: 'Ana',          category: 'family', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Ана. Бас бармақты иекке тигізіп, саусақтарды ашық ұстау.',                       gesture: 'Ашық алақан (иекке)',   emoji: '👩', animation: 'bounce' },
+  { id: 'w17', wordKz: 'Әке',       transliteration: 'Äke',          category: 'family', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Әке. Бас бармақты маңдайға тигізіп, саусақтарды ашық ұстау.',                    gesture: 'Ашық алақан (маңдай)', emoji: '👨', animation: 'bounce' },
+  { id: 'w18', wordKz: 'Бала',      transliteration: 'Bala',         category: 'family', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Бала, нәресте. Қолды төмен қарай бұлғау.',                                       gesture: 'Қол (төмен)',          emoji: '👶', animation: 'bounce' },
+  { id: 'w19', wordKz: 'Аға',       transliteration: 'Ağa',          category: 'family', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Үлкен ағай / аға. Екі саусақты маңдайдан жоғары көтеру.',                       gesture: 'V белгісі (маңдай)',   emoji: '👦', animation: 'bounce' },
+  { id: 'w20', wordKz: 'Сіңлі',     transliteration: 'Siñli',        category: 'family', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Кіші қарындас. L белгісін иектен төмен сипау.',                                  gesture: 'L белгісі (иек)',      emoji: '👧', animation: 'bounce' },
+  { id: 'w21', wordKz: 'Әже',       transliteration: 'Äzhe',         category: 'family', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Әже. Иекке тигізіп, алға екі рет бұлғау.',                                      gesture: 'Алақан (иек, алға)',   emoji: '👵', animation: 'wave' },
+  { id: 'w22', wordKz: 'Ата',       transliteration: 'Ata',          category: 'family', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Ата. Маңдайға тигізіп, алға екі рет бұлғау.',                                   gesture: 'Алақан (маңд., алға)', emoji: '👴', animation: 'wave' },
+  { id: 'w23', wordKz: 'Отбасы',    transliteration: 'Otbasy',       category: 'family', difficulty: 'ҚИЫН',   color: '#EF4444', description: 'Отбасы. Екі қолмен шеңбер жасау.',                                              gesture: 'Шеңбер (екі қол)',     emoji: '👨‍👩‍👧‍👦', animation: 'pulse' },
+
+  // ═══════════════ МЕКТЕП (8) ═══════════════
+  { id: 'w24', wordKz: 'Кітап',     transliteration: 'Kitap',        category: 'school', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Кітап. Екі алақанды ашып-жабу.',                                                 gesture: 'Кітап ашу',            emoji: '📖', animation: 'pulse' },
+  { id: 'w25', wordKz: 'Мұғалім',   transliteration: 'Muğalim',      category: 'school', difficulty: 'ҚИЫН',   color: '#EF4444', description: 'Оқытушы. Екі қолмен маңдайдан алға ишарат.',                                    gesture: 'Екі қол (маңдай)',     emoji: '🧑‍🏫', animation: 'wave' },
+  { id: 'w26', wordKz: 'Оқу',       transliteration: 'Oqu',          category: 'school', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Оқу, білім алу. Ашық кітап қимылы.',                                            gesture: 'Кітап (қарау)',        emoji: '📚', animation: 'pulse' },
+  { id: 'w27', wordKz: 'Жазу',      transliteration: 'Zhazu',        category: 'school', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Жазу. Қалам ұстағандай қимыл.',                                                 gesture: 'Қалам ұстау',         emoji: '✏️', animation: 'shake' },
+  { id: 'w28', wordKz: 'Сынып',     transliteration: 'Synyp',        category: 'school', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Сынып бөлмесі. Екі қолмен төбе және қабырғаны көрсету.',                        gesture: 'Үй (екі қол)',        emoji: '🏫', animation: 'pulse' },
+  { id: 'w29', wordKz: 'Емтихан',   transliteration: 'Emtihan',      category: 'school', difficulty: 'ҚИЫН',   color: '#EF4444', description: 'Сынақ, тест. Екі қолмен сұрақ-жауап ишарат.',                                  gesture: 'Саусақ (сұрақ)',       emoji: '📝', animation: 'shake' },
+  { id: 'w30', wordKz: 'Қалам',     transliteration: 'Qalam',        category: 'school', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Жазу құралы. Саусақпен хатта жазу қимылы.',                                     gesture: 'Жазу қимылы',         emoji: '🖊️', animation: 'pulse' },
+  { id: 'w31', wordKz: 'Сабақ',     transliteration: 'Sabaq',        category: 'school', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Дәріс, сабақ. Тақтадан оқыту қимылы.',                                           gesture: 'Тақта қимылы',        emoji: '📋', animation: 'wave' },
+
+  // ═══════════════ САНДАР (10) ═══════════════
+  { id: 'w32', wordKz: 'Бір',   transliteration: 'Bir',   category: 'numbers', difficulty: 'ОҢАЙ', color: '#10B981', description: '1 — Сұқ саусақты көтеру.',            gesture: 'Сұқ саусақ',    emoji: '1️⃣', animation: 'pulse' },
+  { id: 'w33', wordKz: 'Екі',   transliteration: 'Eki',   category: 'numbers', difficulty: 'ОҢАЙ', color: '#10B981', description: '2 — Сұқ және ортаңғы саусақ.',          gesture: 'V белгісі',    emoji: '2️⃣', animation: 'pulse' },
+  { id: 'w34', wordKz: 'Үш',    transliteration: 'Üsh',   category: 'numbers', difficulty: 'ОҢАЙ', color: '#10B981', description: '3 — Үш саусақты көтеру.',               gesture: 'W белгісі',    emoji: '3️⃣', animation: 'pulse' },
+  { id: 'w35', wordKz: 'Төрт',  transliteration: 'Tört',  category: 'numbers', difficulty: 'ОҢАЙ', color: '#10B981', description: '4 — Бас бармақтан басқа төрт саусақ.',   gesture: 'Төрт саусақ',  emoji: '4️⃣', animation: 'pulse' },
+  { id: 'w36', wordKz: 'Бес',   transliteration: 'Bes',   category: 'numbers', difficulty: 'ОҢАЙ', color: '#10B981', description: '5 — Барлық саусақтарды ашу.',            gesture: 'Ашық алақан',  emoji: '5️⃣', animation: 'wave' },
+  { id: 'w37', wordKz: 'Алты',  transliteration: 'Alty',  category: 'numbers', difficulty: 'ОРТАША', color: '#F59E0B', description: '6 — Бір қолда бес + екінші бас бармақ.', gesture: 'Бес + бірмін',  emoji: '6️⃣', animation: 'pulse' },
+  { id: 'w38', wordKz: 'Жеті',  transliteration: 'Zheti', category: 'numbers', difficulty: 'ОРТАША', color: '#F59E0B', description: '7 — Бір қолда бес + екінші V.',         gesture: 'Бес + екімін',  emoji: '7️⃣', animation: 'pulse' },
+  { id: 'w39', wordKz: 'Сегіз', transliteration: 'Segiz', category: 'numbers', difficulty: 'ОРТАША', color: '#F59E0B', description: '8 — Бір қолда бес + үш.',              gesture: 'Бес + үшмін',  emoji: '8️⃣', animation: 'pulse' },
+  { id: 'w40', wordKz: 'Тоғыз', transliteration: 'Toğyz', category: 'numbers', difficulty: 'ОРТАША', color: '#F59E0B', description: '9 — Бір қолда бес + төрт.',             gesture: 'Бес + төртмін', emoji: '9️⃣', animation: 'pulse' },
+  { id: 'w41', wordKz: 'Он',    transliteration: 'On',    category: 'numbers', difficulty: 'ОҢАЙ', color: '#10B981', description: '10 — Бас бармақты жоғары бұлғау.',        gesture: 'Бас бармақ (бұлғау)', emoji: '🔟', animation: 'bounce' },
+
+  // ═══════════════ ТҮСТЕР (7) ═══════════════
+  { id: 'w42', wordKz: 'Қызыл', transliteration: 'Qyzyl', category: 'colors', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Қызыл түс. Ерінді саусақпен төмен сипау.',       gesture: 'Сұқ саусақ (ерін)',  emoji: '🔴', animation: 'pulse' },
+  { id: 'w43', wordKz: 'Көк',   transliteration: 'Kök',   category: 'colors', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Көк түс. K әрпін жасап, қолды бұлғау.',           gesture: 'K белгісі (бұлғау)', emoji: '🔵', animation: 'wave' },
+  { id: 'w44', wordKz: 'Жасыл', transliteration: 'Zhasyl', category: 'colors', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Жасыл түс. G әрпін жасап, шайқау.',               gesture: 'G белгісі (шайқау)', emoji: '🟢', animation: 'shake' },
+  { id: 'w45', wordKz: 'Сары',  transliteration: 'Sary',  category: 'colors', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Сары түс. Y әрпін жасап, бұлғау.',                  gesture: 'Y белгісі (бұлғау)', emoji: '🟡', animation: 'wave' },
+  { id: 'w46', wordKz: 'Ақ',    transliteration: 'Aq',    category: 'colors', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Ақ түс. Кеудеден алақанды алға тарту.',               gesture: 'Алақан (кеуде)',     emoji: '⚪', animation: 'pulse' },
+  { id: 'w47', wordKz: 'Қара',  transliteration: 'Qara',  category: 'colors', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Қара түс. Маңдайды саусақпен сипау.',                 gesture: 'Саусақ (маңдай)',    emoji: '⚫', animation: 'pulse' },
+  { id: 'w48', wordKz: 'Қоңыр', transliteration: 'Qoñyr', category: 'colors', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Қоңыр түс. B әрпін жасап, бетте төмен жылжыту.',   gesture: 'B белгісі (бет)',    emoji: '🟤', animation: 'pulse' },
+
+  // ═══════════════ СЕЗІМДЕР (6) ═══════════════
+  { id: 'w49', wordKz: 'Қуаныш',  transliteration: 'Quanysh',  category: 'emotions', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Қуаныш. Кеудеде дөңгелек қимыл жоғары.',        gesture: 'Алақан (кеуде, жоғары)', emoji: '😊', animation: 'bounce' },
+  { id: 'w50', wordKz: 'Ренжу',   transliteration: 'Renzhu',   category: 'emotions', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Ренжу, күйзелу. Екі қолды көзден төмен.',     gesture: 'Көз жасы',               emoji: '😢', animation: 'pulse' },
+  { id: 'w51', wordKz: 'Ашу',     transliteration: 'Ashu',     category: 'emotions', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Ашу, ыза. Саусақтарды жұдырыққа бүгіп, жоғары.', gesture: 'Жұдырық (жоғары)',     emoji: '😠', animation: 'shake' },
+  { id: 'w52', wordKz: 'Қорқу',   transliteration: 'Qorqu',    category: 'emotions', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Қорқу. Екі қолды кеуденің алдында шайқау.',    gesture: 'Екі қол (шайқау)',       emoji: '😨', animation: 'shake' },
+  { id: 'w53', wordKz: 'Таңдану', transliteration: 'Tañdanu',  category: 'emotions', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Таңғалу. Екі қолды ашық ұстау.',                gesture: 'Ашық алақан (екі қол)', emoji: '😮', animation: 'wave' },
+  { id: 'w54', wordKz: 'Жалқау',  transliteration: 'Zhalqau',  category: 'emotions', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Жалқау. Қолды иыққа қойып, еңкею.',              gesture: 'Қол (иық)',              emoji: '😴', animation: 'pulse' },
+
+  // ═══════════════ ТАҒАМ (6) ═══════════════
+  { id: 'w55', wordKz: 'Нан',    transliteration: 'Nan',    category: 'food', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Нан. Екі қолмен сындыру қимылы.',                  gesture: 'Екі қол (сындыру)',  emoji: '🍞', animation: 'pulse' },
+  { id: 'w56', wordKz: 'Су',     transliteration: 'Su',     category: 'food', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Су. W әрпін иекке тигізу.',                        gesture: 'W (иекке)',          emoji: '💧', animation: 'pulse' },
+  { id: 'w57', wordKz: 'Сүт',    transliteration: 'Süt',    category: 'food', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Сүт. Сауу қимылы.',                                 gesture: 'Сауу қимылы',       emoji: '🥛', animation: 'bounce' },
+  { id: 'w58', wordKz: 'Алма',   transliteration: 'Alma',   category: 'food', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Алма. Жұдырықпен жақты бұрау.',                     gesture: 'Жұдырық (жақ)',      emoji: '🍎', animation: 'bounce' },
+  { id: 'w59', wordKz: 'Ет',     transliteration: 'Et',     category: 'food', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Ет. Бас бармақ пен сұқ саусақ арасын шымшу.',      gesture: 'Шымшу қимылы',      emoji: '🥩', animation: 'pulse' },
+  { id: 'w60', wordKz: 'Шай',    transliteration: 'Shay',   category: 'food', difficulty: 'ОҢАЙ',   color: '#10B981', description: 'Шай ішу. Кесені ұстағандай қимыл, аузға жақындату.', gesture: 'Кесе (аузға)',       emoji: '🍵', animation: 'pulse' },
 ]
