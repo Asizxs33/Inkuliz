@@ -24,31 +24,47 @@ export default function LiveChat() {
   const [classInfo, setClassInfo] = useState<any>(null)
   const [onlineUsers, setOnlineUsers] = useState<string[]>([])
 
-  // Load class info — try student endpoint first, then teacher
+  // Load class info based on user role
   useEffect(() => {
     if (!userId) return
     const fetchClass = async () => {
-      try {
-        // Try student class first
-        const res1 = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/student/${userId}`)
-        const data1 = await res1.json()
-        if (data1.class) {
-          setClassInfo(data1.class)
-          return
-        }
-      } catch {}
+      const apiBase = import.meta.env.VITE_API_URL || ''
+      
+      if (role === 'teacher') {
+        // Teacher: get their own classes
+        try {
+          const res = await fetch(`${apiBase}/api/classes/${userId}`)
+          const data = await res.json()
+          if (data.classes?.length > 0) {
+            setClassInfo(data.classes[0])
+            return
+          }
+        } catch {}
+      } else {
+        // Student: get the class they belong to
+        try {
+          const res = await fetch(`${apiBase}/api/classes/student/${userId}`)
+          const data = await res.json()
+          if (data.class) {
+            setClassInfo(data.class)
+            return
+          }
+        } catch {}
+      }
 
+      // Fallback: try the other endpoint
       try {
-        // Then try teacher classes
-        const res2 = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/${userId}`)
-        const data2 = await res2.json()
-        if (data2.classes?.length > 0) {
-          setClassInfo(data2.classes[0])
-        }
+        const fallbackUrl = role === 'teacher' 
+          ? `${apiBase}/api/classes/student/${userId}`
+          : `${apiBase}/api/classes/${userId}`
+        const res = await fetch(fallbackUrl)
+        const data = await res.json()
+        if (data.class) setClassInfo(data.class)
+        else if (data.classes?.length > 0) setClassInfo(data.classes[0])
       } catch {}
     }
     fetchClass()
-  }, [userId])
+  }, [userId, role])
 
   // Join class chat room
   useEffect(() => {
