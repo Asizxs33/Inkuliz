@@ -279,13 +279,13 @@ export default function GlobalBiometrics() {
               setCognitive(emotionResult.cognitive)
               isStressRef.current = ['АШУЛЫ', 'ҚОРЫҚҚАН', 'ЖИІРКЕНГЕН'].includes(emotionResult.emotionKz)
               
-              // Sleep Detection Logic - Trigger Kairat Nurtas if sleepy/eyes closed for 3 seconds!
+              // Sleep Detection Logic - Trigger Kairat Nurtas if sleepy/eyes closed for 4 seconds!
               if (
                 emotionResult.isEyesClosed || 
                 ['ҰЙҚЫДА', 'ШАРШАҒАН', 'ЗЕРІККЕН', 'БЕЙҚАМ', 'ЖАЛЫҚҚАН'].includes(emotionResult.emotionKz)
               ) {
                 sleepCounterRef.current += 1
-                if (sleepCounterRef.current >= 3 && !isSleeping) {
+                if (sleepCounterRef.current >= 4 && !isSleeping) {
                    setIsSleeping(true)
                 }
               } else {
@@ -497,7 +497,7 @@ export default function GlobalBiometrics() {
                 KAgp-vB8zwI is 'Ауырмайды жүрек', adding allow=autoplay */}
             <iframe 
                width="1" height="1" 
-               src="https://www.youtube.com/embed/KAgp-vB8zwI?autoplay=1&playsinline=1" 
+               src="https://www.youtube.com/embed/KAgp-vB8zwI?autoplay=1&playsinline=1&start=40" 
                title="Wake up alarm" 
                allow="autoplay; encrypted-media; fullscreen; picture-in-picture" 
                className="absolute opacity-0 pointer-events-none"
