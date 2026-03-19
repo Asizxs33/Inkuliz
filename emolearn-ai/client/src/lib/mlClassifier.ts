@@ -1,29 +1,45 @@
 import type { Landmark } from './gestureRecognizer'
 
 /**
- * Normalizes 21 landmarks into a 63-dimensional feature vector.
+ * Normalizes up to 2 hands (42 landmarks) into a 126-dimensional shape vector.
+ * If only 1 hand is visible, the other 21 points are set to 0.
  */
-export function normalizeLandmarks(landmarks: Landmark[]): number[] {
-  if (!landmarks || landmarks.length !== 21) return []
+export function normalizeDualHandLandmarks(hands: Landmark[][]): number[] {
+  const combined: Landmark[] = []
+  
+  // Fill Hand 1 or zeros
+  const h1 = (hands && hands.length > 0 && hands[0]) ? hands[0] : Array(21).fill({x:0, y:0, z:0})
+  // Fill Hand 2 or zeros
+  const h2 = (hands && hands.length > 1 && hands[1]) ? hands[1] : Array(21).fill({x:0, y:0, z:0})
+  
+  combined.push(...h1, ...h2)
 
-  const wrist = landmarks[0]
+  // Origin is wrist of first active hand, else 0
+  let origin = {x:0, y:0, z:0}
+  if (hands && hands.length > 0 && hands[0]) origin = hands[0][0]
+  else if (hands && hands.length > 1 && hands[1]) origin = hands[1][0]
+
   let maxDist = 0
-
-  for (let i = 1; i < landmarks.length; i++) {
+  for (let i = 0; i < 42; i++) {
+    if (combined[i].x === 0 && combined[i].y === 0 && combined[i].z === 0) continue
     const dist = Math.sqrt(
-      Math.pow(landmarks[i].x - wrist.x, 2) +
-      Math.pow(landmarks[i].y - wrist.y, 2) +
-      Math.pow(landmarks[i].z - wrist.z, 2)
+      Math.pow(combined[i].x - origin.x, 2) +
+      Math.pow(combined[i].y - origin.y, 2) +
+      Math.pow(combined[i].z - origin.z, 2)
     )
     if (dist > maxDist) maxDist = dist
   }
   if (maxDist === 0) maxDist = 1
 
   const vector: number[] = []
-  for (let i = 0; i < landmarks.length; i++) {
-    vector.push((landmarks[i].x - wrist.x) / maxDist)
-    vector.push((landmarks[i].y - wrist.y) / maxDist)
-    vector.push((landmarks[i].z - wrist.z) / maxDist)
+  for (let i = 0; i < 42; i++) {
+    if (combined[i].x === 0 && combined[i].y === 0 && combined[i].z === 0) {
+      vector.push(0, 0, 0)
+    } else {
+      vector.push((combined[i].x - origin.x) / maxDist)
+      vector.push((combined[i].y - origin.y) / maxDist)
+      vector.push((combined[i].z - origin.z) / maxDist)
+    }
   }
 
   return vector
@@ -38,24 +54,30 @@ export function euclideanDistance(vecA: number[], vecB: number[]): number {
 }
 
 /**
- * Normalizes a sequence of frames into vectors.
+ * Normalizes a sequence of frames into 128-dimensional vectors.
  * Adds Velocity (dx, dy) to capture motion trajectory.
  */
-export function normalizeSequence(sequence: Landmark[][]): number[][] {
+export function normalizeDualSequence(sequence: Landmark[][][]): number[][] {
   const result: number[][] = []
   const VELOCITY_WEIGHT = 7.0 // Emphasize motion trajectory heavily
 
   for (let i = 0; i < sequence.length; i++) {
-    const shapeVec = normalizeLandmarks(sequence[i])
-    if (shapeVec.length === 0) continue
+    const shapeVec = normalizeDualHandLandmarks(sequence[i])
 
     let dx = 0, dy = 0
     if (i > 0) {
-      dx = (sequence[i][0].x - sequence[i - 1][0].x) * VELOCITY_WEIGHT
-      dy = (sequence[i][0].y - sequence[i - 1][0].y) * VELOCITY_WEIGHT
+      const currHands = sequence[i]
+      const prevHands = sequence[i - 1]
+      const currOrigin = (currHands && currHands.length > 0 && currHands[0]) ? currHands[0][0] : null
+      const prevOrigin = (prevHands && prevHands.length > 0 && prevHands[0]) ? prevHands[0][0] : null
+      
+      if (currOrigin && prevOrigin) {
+         dx = (currOrigin.x - prevOrigin.x) * VELOCITY_WEIGHT
+         dy = (currOrigin.y - prevOrigin.y) * VELOCITY_WEIGHT
+      }
     }
     
-    shapeVec.push(dx, dy) // 65-dimensional vector: 63 shape + 2 motion
+    shapeVec.push(dx, dy) // 126 shape + 2 motion = 128
     result.push(shapeVec)
   }
   return result
@@ -63,8 +85,6 @@ export function normalizeSequence(sequence: Landmark[][]): number[][] {
 
 /**
  * Dynamic Time Warping (DTW) algorithm
- * Compares two time-series sequences of varying speeds.
- * Returns the minimum accumulated distance.
  */
 export function dtwDistance(seq1: number[][], seq2: number[][]): number {
   const n = seq1.length
@@ -91,12 +111,12 @@ export function dtwDistance(seq1: number[][], seq2: number[][]): number {
 
 export interface MLTrainingSequence {
   wordKz: string;
-  sequence: number[][]; // Array of normalized vectors
+  sequence: number[][]; // Array of normalized 128-dim vectors
 }
 
 export class GestureML {
   private examples: MLTrainingSequence[] = []
-  private readonly STORAGE_KEY = 'emolearn_dtw_sequences'
+  private readonly STORAGE_KEY = 'emolearn_dtw_dual_sequences'
 
   constructor() {
     this.load()
@@ -107,7 +127,7 @@ export class GestureML {
       const data = localStorage.getItem(this.STORAGE_KEY)
       if (data) {
         this.examples = JSON.parse(data)
-        console.log(`[ML] Loaded ${this.examples.length} sequence examples.`)
+        console.log(`[ML] Loaded ${this.examples.length} dual-hand sequence examples.`)
       }
     } catch (e) {
       console.warn('[ML] Failed to load dataset', e)
@@ -122,8 +142,8 @@ export class GestureML {
     }
   }
 
-  public addSequenceExample(wordKz: string, rawSequence: Landmark[][]) {
-    const sequence = normalizeSequence(rawSequence)
+  public addSequenceExample(wordKz: string, rawSequence: Landmark[][][]) {
+    const sequence = normalizeDualSequence(rawSequence)
     if (sequence.length < 5) return // Too short
 
     this.examples.push({ wordKz, sequence })
@@ -143,10 +163,10 @@ export class GestureML {
      return counts
   }
 
-  public predictSequence(rawSequence: Landmark[][]): { wordKz: string, distance: number } | null {
+  public predictSequence(rawSequence: Landmark[][][]): { wordKz: string, distance: number } | null {
     if (this.examples.length === 0 || rawSequence.length < 5) return null
 
-    const liveSequence = normalizeSequence(rawSequence)
+    const liveSequence = normalizeDualSequence(rawSequence)
     if (liveSequence.length === 0) return null
 
     let bestMatch = ''
@@ -160,9 +180,9 @@ export class GestureML {
       }
     }
 
-    // Euclidean DTW distance threshold: smaller is better.
-    // 1.2 is a good threshold for 65-dim data where 63 dimensions are bounded by [-1, 1].
-    if (minDistance < 1.3) {
+    // Since vector is now 128 dimensions, the distance will naturally be higher.
+    // Euclidean distance in 128D space.
+    if (minDistance < 2.5) { // Adjusted threshold for 128-dim space
       return {
         wordKz: bestMatch,
         distance: minDistance

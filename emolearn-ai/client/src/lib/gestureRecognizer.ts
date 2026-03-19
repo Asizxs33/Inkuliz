@@ -34,16 +34,16 @@ function angle(a: Landmark, b: Landmark, c: Landmark): number {
 
 import { ML_CLASSIFIER } from './mlClassifier'
 
-let sequenceBuffer: Landmark[][] = []
+let sequenceBuffer: Landmark[][][] = []
 
-export function recognizeGesture(lm: Landmark[]): GestureResult {
-  if (!lm || lm.length < 21) {
+export function recognizeGesture(hands: Landmark[][]): GestureResult {
+  if (!hands || hands.length === 0 || !hands[0] || hands[0].length < 21) {
     if (sequenceBuffer.length > 0) sequenceBuffer = []
     return { word: '—', wordKz: '—', confidence: 0 }
   }
 
   // Update rolling buffer
-  sequenceBuffer.push(lm)
+  sequenceBuffer.push(hands)
   if (sequenceBuffer.length > 25) {
      sequenceBuffer.shift()
   }
@@ -64,7 +64,7 @@ export function recognizeGesture(lm: Landmark[]): GestureResult {
   }
 
   // 2. Fallback to ultra-precise geometric rules
-
+  const lm = hands[0]
   const thumb  = isFingerExtended(lm, 4, 3) // Relaxed thumb detection (pip instead of mcp)
   const index  = isFingerExtended(lm, 8, 6)
   const middle = isFingerExtended(lm, 12, 10)

@@ -17,11 +17,13 @@ export default function AITrainerModal({ onClose }: Props) {
   const [trainedCount, setTrainedCount] = useState(0)
   
   const { handLandmarks, isCameraEnabled } = useBiometricStore()
-  const latestLandmarksRef = useRef<Landmark[] | null>(null)
+  const latestLandmarksRef = useRef<Landmark[][] | null>(null)
 
   useEffect(() => {
     if (handLandmarks && handLandmarks.length > 0) {
-      latestLandmarksRef.current = handLandmarks[0]
+      latestLandmarksRef.current = handLandmarks
+    } else {
+      latestLandmarksRef.current = null
     }
   }, [handLandmarks])
 
@@ -34,13 +36,13 @@ export default function AITrainerModal({ onClose }: Props) {
     setIsRecording(true)
     setProgress(0)
     
-    const sequence: Landmark[][] = []
+    const sequence: Landmark[][][] = []
     let frames = 0
     const TARGET_FRAMES = 25 // 25 frames ~ 1.5 seconds at ~15fps
     
     const interval = setInterval(() => {
        if (latestLandmarksRef.current) {
-         sequence.push([...latestLandmarksRef.current])
+         sequence.push(latestLandmarksRef.current)
        }
        frames++
        setProgress((frames / TARGET_FRAMES) * 100)
@@ -52,7 +54,7 @@ export default function AITrainerModal({ onClose }: Props) {
     }, 60)
   }
 
-  const finishTraining = (sequence: Landmark[][]) => {
+  const finishTraining = (sequence: Landmark[][][]) => {
      ML_CLASSIFIER.addSequenceExample(selectedWord, sequence)
      setTrainedCount(prev => prev + 1)
      setIsRecording(false)

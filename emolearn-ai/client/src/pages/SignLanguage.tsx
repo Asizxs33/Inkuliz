@@ -124,8 +124,8 @@ export default function SignLanguage() {
         })
       }
 
-      // Gesture Recognition
-      const result = recognizeGesture(landmarks)
+      // Gesture Recognition (Pass all hands to support Dual-Hand ML)
+      const result = recognizeGesture(handLandmarks)
       if (result) {
         setGestureResult(result)
         const histResult = GESTURE_HISTORY.push(result.wordKz)
