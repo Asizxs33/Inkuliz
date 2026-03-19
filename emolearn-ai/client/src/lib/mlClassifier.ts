@@ -181,8 +181,9 @@ export class GestureML {
     }
 
     // Since vector is now 128 dimensions, the distance will naturally be higher.
-    // Euclidean distance in 128D space. Reduced to make ML stricter.
-    if (minDistance < 1.6) { // Adjusted threshold for 128-dim space
+    // Euclidean distance in 128D space.
+    // 0.45 is a strict threshold: correct signs will be ~0.15-0.30, wrong signs > 0.60
+    if (minDistance < 0.45) {
       return {
         wordKz: bestMatch,
         distance: minDistance

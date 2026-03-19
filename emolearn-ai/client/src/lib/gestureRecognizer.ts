@@ -148,7 +148,7 @@ export class GestureHistory {
     this.currentWord = word
     this.lastLockedWord = word
     this.consecutiveFrames = this.requiredFrames
-    this.cooldownFrames = 30 // ~2-3 seconds cooldown at 10-15fps
+    this.cooldownFrames = 20 // ~2 seconds cooldown at 10fps
     return { word: word, progress: 100, isUnlocked: true, isCooldown: true }
   }
 
