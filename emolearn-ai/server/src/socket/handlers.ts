@@ -91,6 +91,34 @@ export function setupSocket(io: Server) {
       io.to('live_room').emit('live_chat_message', data)
     })
 
+    // Class-based Chat System
+    socket.on('class_chat:join', (data: { classId: string, userId: string, userName: string }) => {
+      const room = `class_chat_${data.classId}`
+      socket.join(room)
+      console.log(`💬 ${data.userName} joined class chat: ${room}`)
+      socket.to(room).emit('class_chat:user_joined', { userId: data.userId, userName: data.userName })
+    })
+
+    socket.on('class_chat:message', (data: {
+      classId: string
+      userId: string
+      name: string
+      text: string
+      role: string
+      timestamp: string
+    }) => {
+      const room = `class_chat_${data.classId}`
+      io.to(room).emit('class_chat:message', {
+        ...data,
+        id: `${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
+      })
+    })
+
+    // In-app notification system
+    socket.on('notification:send', (data: { targetUserId: string, type: string, message: string, from: string }) => {
+      io.emit('notification:receive', data) // Broadcast — client filters by targetUserId
+    })
+
     // WebRTC Signaling Events
     socket.on('webrtc:offer', (data) => {
       socket.to('live_room').emit('webrtc:offer', { offer: data.offer, senderId: socket.id })

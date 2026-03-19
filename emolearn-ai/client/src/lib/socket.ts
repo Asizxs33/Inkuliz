@@ -59,6 +59,45 @@ export function onLiveChatMessage(callback: (data: any) => void) {
   }
 }
 
+// Class-based Chat
+export function joinClassChat(classId: string, userId: string, userName: string) {
+  getSocket().emit('class_chat:join', { classId, userId, userName })
+}
+
+export function emitClassChatMessage(data: {
+  classId: string
+  userId: string
+  name: string
+  text: string
+  role: string
+  timestamp: string
+}) {
+  getSocket().emit('class_chat:message', data)
+}
+
+export function onClassChatMessage(callback: (data: any) => void) {
+  const socket = getSocket()
+  socket.on('class_chat:message', callback)
+  return () => { socket.off('class_chat:message', callback) }
+}
+
+export function onClassChatUserJoined(callback: (data: any) => void) {
+  const socket = getSocket()
+  socket.on('class_chat:user_joined', callback)
+  return () => { socket.off('class_chat:user_joined', callback) }
+}
+
+// In-app Notifications
+export function sendNotification(targetUserId: string, type: string, message: string, from: string) {
+  getSocket().emit('notification:send', { targetUserId, type, message, from })
+}
+
+export function onNotification(callback: (data: any) => void) {
+  const socket = getSocket()
+  socket.on('notification:receive', callback)
+  return () => { socket.off('notification:receive', callback) }
+}
+
 // WebRTC Signaling
 export function emitWebRTCOffer(offer: RTCSessionDescriptionInit) {
   getSocket().emit('webrtc:offer', { offer })

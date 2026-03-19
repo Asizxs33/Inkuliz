@@ -62,6 +62,35 @@ classesRouter.post('/join', async (req, res) => {
   }
 })
 
+// GET /api/classes/student/:studentId (Get class the student belongs to)
+// MUST be before /:teacherId to avoid route collision
+classesRouter.get('/student/:studentId', async (req, res) => {
+  try {
+    const studentId = req.params.studentId
+    
+    const result = await db
+      .select({
+        id: classes.id,
+        name: classes.name,
+        invite_code: classes.invite_code,
+        teacher_id: classes.teacher_id
+      })
+      .from(classStudents)
+      .innerJoin(classes, eq(classStudents.class_id, classes.id))
+      .where(eq(classStudents.student_id, studentId))
+      .limit(1)
+
+    if (result.length > 0) {
+      res.json({ class: result[0] })
+    } else {
+      res.json({ class: null })
+    }
+  } catch (error) {
+    console.error('Fetch student class error:', error)
+    res.status(500).json({ error: 'Failed to fetch student class' })
+  }
+})
+
 // GET /api/classes/:teacherId (Teacher Dashboard)
 classesRouter.get('/:teacherId', async (req, res) => {
   try {

@@ -1,31 +1,69 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Hand, MessageSquare, Info } from 'lucide-react'
-import { getSocket, joinLiveRoom, emitLiveChatMessage, onLiveChatMessage } from '../lib/socket'
+import { Send, Hand, MessageSquare, Info, Users } from 'lucide-react'
+import { joinClassChat, emitClassChatMessage, onClassChatMessage, onClassChatUserJoined } from '../lib/socket'
 import { useUserStore } from '../store/userStore'
 
 interface ChatMessage {
-  id: string;
-  userId: string;
-  name: string;
-  text: string;
-  isSignLanguage: boolean;
-  timestamp: Date;
+  id: string
+  classId: string
+  userId: string
+  name: string
+  text: string
+  role: string
+  timestamp: string
 }
 
 export default function LiveChat() {
-  const { id: userId, name: userName } = useUserStore()
+  const { id: userId, name: userName, role } = useUserStore()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputText, setInputText] = useState('')
   const chatEndRef = useRef<HTMLDivElement>(null)
+  
+  // Class info
+  const [classInfo, setClassInfo] = useState<any>(null)
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([])
 
+  // Load class info
   useEffect(() => {
-    joinLiveRoom()
-    const cleanup = onLiveChatMessage((msg: ChatMessage) => {
+    if (!userId) return
+    const fetchClass = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/${userId}`)
+        const data = await res.json()
+        if (data.classes?.length > 0) {
+          setClassInfo(data.classes[0])
+        } else if (data.class) {
+          setClassInfo(data.class)
+        }
+      } catch {
+        // Student: try to get their class
+        try {
+          const res2 = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/student/${userId}`)
+          const data2 = await res2.json()
+          if (data2.class) setClassInfo(data2.class)
+        } catch {}
+      }
+    }
+    fetchClass()
+  }, [userId])
+
+  // Join class chat room
+  useEffect(() => {
+    if (!classInfo?.id || !userId) return
+    
+    joinClassChat(classInfo.id, userId, userName || 'Пайдаланушы')
+    
+    const cleanupMsg = onClassChatMessage((msg: ChatMessage) => {
       setMessages(prev => [...prev, msg])
     })
-    return cleanup
-  }, [])
+    
+    const cleanupJoin = onClassChatUserJoined((data: any) => {
+      setOnlineUsers(prev => prev.includes(data.userName) ? prev : [...prev, data.userName])
+    })
+    
+    return () => { cleanupMsg(); cleanupJoin() }
+  }, [classInfo?.id, userId])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -33,32 +71,50 @@ export default function LiveChat() {
 
   const handleSendMessage = (e?: React.FormEvent) => {
     e?.preventDefault()
-    if (!inputText.trim() || !userId) return
+    if (!inputText.trim() || !userId || !classInfo?.id) return
 
-    emitLiveChatMessage({
+    emitClassChatMessage({
+      classId: classInfo.id,
       userId,
       name: userName || 'Пайдаланушы',
       text: inputText,
-      isSignLanguage: false,
-      timestamp: new Date()
+      role: role || 'student',
+      timestamp: new Date().toISOString()
     })
 
     setInputText('')
   }
 
-  return (
-    <div className="flex flex-col h-[calc(100vh-100px)] gap-6 p-6 animate-fade-in max-w-5xl mx-auto">
-      {/* Header Info */}
-      <div className="bg-gradient-to-r from-plum to-rose rounded-2xl p-6 text-white shadow-lg overflow-hidden relative">
-        <div className="absolute top-0 right-0 p-8 opacity-20 transform translate-x-1/4 -translate-y-1/4 rotate-12">
-          <MessageSquare size={160} />
+  if (!classInfo) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 animate-fade-in">
+        <div className="card max-w-md w-full p-8 text-center">
+          <MessageSquare size={48} className="text-text-muted mx-auto mb-4 opacity-30" />
+          <h2 className="text-xl font-extrabold text-text-primary mb-2">Сынып табылмады</h2>
+          <p className="text-sm text-text-muted">Чатқа кіру үшін алдымен сыныпқа қосылуыңыз керек. Мұғалімнен шақыру кодын сұраңыз.</p>
         </div>
-        <div className="relative z-10">
-          <h1 className="text-3xl font-extrabold mb-2">Live Сұхбат</h1>
-          <p className="text-white/80 max-w-xl">
-             Бұл жерде сіз ымдау тілінде сөйлейтін студенттермен нақты уақытта хат алмаса аласыз. 
-             Ымдау тілінен аударылған хабарламалар <Hand size={14} className="inline mx-1" /> белгісімен көрсетіледі.
-          </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-100px)] gap-6 animate-fade-in max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-plum to-rose rounded-2xl p-5 text-white shadow-lg overflow-hidden relative">
+        <div className="absolute top-0 right-0 p-8 opacity-20 transform translate-x-1/4 -translate-y-1/4 rotate-12">
+          <MessageSquare size={120} />
+        </div>
+        <div className="relative z-10 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-extrabold mb-1">{classInfo.name} — Сынып чаты</h1>
+            <p className="text-white/70 text-sm">
+              Мұғалім мен оқушылар бір-бірімен нақты уақытта сөйлесе алады
+            </p>
+          </div>
+          <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+            <span className="text-sm font-bold">LIVE</span>
+          </div>
         </div>
       </div>
 
@@ -78,15 +134,19 @@ export default function LiveChat() {
             ) : (
               messages.map((msg, idx) => {
                 const isMe = msg.userId === userId
+                const isTeacher = msg.role === 'teacher'
                 return (
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    key={idx}
+                    key={msg.id || idx}
                     className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                   >
                     <div className="flex items-center gap-2 mb-1 px-1">
-                      <span className="text-xs font-bold text-text-muted">{isMe ? 'Сіз' : msg.name}</span>
+                      <span className={`text-xs font-bold ${isTeacher ? 'text-plum' : 'text-text-muted'}`}>
+                        {isMe ? 'Сіз' : msg.name}
+                        {isTeacher && !isMe && ' 👨‍🏫'}
+                      </span>
                       <span className="text-[10px] text-text-muted opacity-60">
                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
@@ -94,16 +154,12 @@ export default function LiveChat() {
                     <div className={`px-4 py-2.5 rounded-2xl max-w-[80%] shadow-sm ${
                       isMe 
                         ? 'bg-gradient-to-r from-plum to-rose text-white rounded-tr-sm' 
-                        : 'bg-white text-text-primary rounded-tl-sm'
+                        : isTeacher
+                          ? 'bg-plum-pale text-text-primary rounded-tl-sm border border-plum/20'
+                          : 'bg-white text-text-primary rounded-tl-sm'
                     }`}>
                       <p className="text-sm leading-relaxed">{msg.text}</p>
                     </div>
-                    {msg.isSignLanguage && (
-                      <div className="mt-1 flex items-center gap-1 px-1">
-                        <Hand size={12} className="text-plum" />
-                        <span className="text-[10px] text-plum font-medium uppercase tracking-tighter">Ыммен жіберілді</span>
-                      </div>
-                    )}
                   </motion.div>
                 )
               })
@@ -134,36 +190,48 @@ export default function LiveChat() {
         </div>
 
         {/* Sidebar info */}
-        <div className="w-80 flex flex-col gap-4 max-lg:hidden">
+        <div className="w-72 flex flex-col gap-4 max-lg:hidden">
            <div className="card h-fit">
               <div className="flex items-center gap-2 mb-4">
                  <div className="w-8 h-8 rounded-lg bg-plum/10 flex items-center justify-center text-plum font-bold">
                     <Info size={18} />
                  </div>
-                 <h4 className="font-bold text-sm">Сұхбат нұсқаулары</h4>
+                 <h4 className="font-bold text-sm">Чат туралы</h4>
               </div>
               <ul className="space-y-3 text-xs text-text-muted">
                  <li className="flex gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-plum mt-1 flex-shrink-0" />
-                    <span>Ымдау тілінде сөйлейтін студенттердің хабарламалары автоматты түрде аударылып келеді.</span>
+                    <span>Бұл чатта тек <strong>{classInfo.name}</strong> сыныбындағы мұғалім мен оқушылар сөйлесе алады.</span>
                  </li>
                  <li className="flex gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-plum mt-1 flex-shrink-0" />
-                    <span>Сөйлесу кезінде қарапайым және қысқа сөйлемдерді қолданыңыз.</span>
+                    <span>Мұғалім хабарламалары айрықша фонмен (күлгін) белгіленеді.</span>
                  </li>
                  <li className="flex gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-plum mt-1 flex-shrink-0" />
-                    <span>Инклюзивті орта — бұл әрқайсымыз үшін маңызды.</span>
+                    <span>Хабарламалар нақты уақытта жеткізіледі.</span>
                  </li>
               </ul>
            </div>
 
-           <div className="card h-fit flex flex-col items-center gap-4 py-8 text-center bg-plum-pale/50 border-plum/20 border-dashed">
-              <Hand size={48} className="text-plum opacity-50" />
-              <div>
-                <p className="font-bold text-sm mb-1">Сөйлесе аласыз!</p>
-                <p className="text-[10px] text-text-muted opacity-80">Біз барлығына тең мүмкіндіктер береміз.</p>
-              </div>
+           {onlineUsers.length > 0 && (
+             <div className="card h-fit">
+               <div className="flex items-center gap-2 mb-3">
+                 <Users size={16} className="text-success" />
+                 <h4 className="font-bold text-sm">Онлайн ({onlineUsers.length})</h4>
+               </div>
+               <div className="flex flex-wrap gap-2">
+                 {onlineUsers.map(u => (
+                   <span key={u} className="text-xs bg-success/10 text-success font-bold px-3 py-1 rounded-full">{u}</span>
+                 ))}
+               </div>
+             </div>
+           )}
+
+           <div className="card h-fit bg-plum-pale/50 border-plum/20 border-dashed text-center py-6">
+              <Hand size={36} className="text-plum opacity-50 mx-auto mb-2" />
+              <p className="font-bold text-sm mb-1">Шақыру коды</p>
+              <p className="text-lg font-black text-plum tracking-wider">{classInfo.invite_code || '—'}</p>
            </div>
         </div>
       </div>

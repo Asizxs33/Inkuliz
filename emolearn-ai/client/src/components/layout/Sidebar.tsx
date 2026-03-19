@@ -10,6 +10,7 @@ const studentItems = [
   { to: '/sign-language', icon: Hand, label: 'Ымдау тілі' },
   { to: '/analytics', icon: BarChart3, label: 'Аналитика' },
   { to: '/dictionary', icon: BookOpen, label: 'Сөздік' },
+  { to: '/live-chat', icon: MessageSquare, label: 'Сұхбат' },
   { to: '/ai-tutor', icon: Sparkles, label: 'AI Репетитор' },
   { to: '/profile', icon: User, label: 'Профиль' },
 ]
