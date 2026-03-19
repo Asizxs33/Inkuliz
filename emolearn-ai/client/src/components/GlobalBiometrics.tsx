@@ -126,33 +126,21 @@ export default function GlobalBiometrics() {
     })
   }, [])
 
-  // Initialize and handle Alarm Audio with M4A (AAC)
-  // We use the pre-trimmed alarm_40s.m4a file so we NEVER have to seek in JS. 
-  // It natively starts from the chorus!
-  useEffect(() => {
-    const audio = new window.Audio('/alarm_40s.m4a')
-    audio.loop = true
-    audio.preload = 'auto'
-    audioRef.current = audio
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current = null
-      }
-    }
-  }, [])
-
   // Safari Autoplay Unlock: guarantees the alarm can play without NotAllowedError
   // We use the capture phase ({ capture: true }) because React onClick events often stop propagation!
   useEffect(() => {
     const unlockAudio = () => {
       if (audioRef.current && audioRef.current.paused) {
-        // Safari strictly requires volume > 0 to grant an active unlock! We pause immediately instead.
+        // Safari strictly requires volume > 0 to grant an active unlock! We use 1% volume.
+        // It also rejects the unlock if paused instantly. We wait 100ms.
+        audioRef.current.volume = 0.01
         const p = audioRef.current.play()
         if (p !== undefined) {
           p.then(() => {
-            audioRef.current?.pause()
-            try { audioRef.current!.currentTime = 0 } catch(e) {}
+            setTimeout(() => {
+              audioRef.current?.pause()
+              try { audioRef.current!.currentTime = 0 } catch(e) {}
+            }, 100)
           }).catch(() => {})
         }
         
@@ -539,10 +527,28 @@ export default function GlobalBiometrics() {
             exit={{ opacity: 0, scale: 0.8 }}
             className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-4 pulse-ring"
           >
-            <h1 className="text-6xl md:text-9xl font-black text-rose uppercase tracking-widest animate-pulse mb-8 drop-shadow-[0_0_30px_rgba(232,80,122,0.8)]">
+           <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="bg-[#1C1D2A]/90 p-12 rounded-3xl border border-rose/30 shadow-[0_0_100px_rgba(232,80,122,0.4)] text-center flex flex-col items-center gap-8 backdrop-blur-md relative z-50 pointer-events-auto"
+          >
+            <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-transparent via-rose to-transparent animate-pulse" />
+            
+            <motion.h2 
+              animate={{ 
+                scale: [1, 1.1, 1],
+                textShadow: ['0px 0px 0px rgba(232,80,122,0)', '0px 0px 30px rgba(232,80,122,0.8)', '0px 0px 0px rgba(232,80,122,0)']
+              }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
+              className="text-7xl font-black text-rose"
+            >
               ОЯН!
-            </h1>
-            <p className="text-white text-xl md:text-2xl font-bold mb-12 text-center">Сіз ұйықтап қалдыңыз ба? Қайрат Нұртас сізді оятады! 🎸</p>
+            </motion.h2>
+            
+            <p className="text-2xl text-white/80 max-w-md font-medium">
+              Сіздің ұйықтап немесе сабаққа қарамай отырғаныңыз байқалды.
+            </p>
             
             <button 
               onClick={() => {
@@ -554,8 +560,18 @@ export default function GlobalBiometrics() {
               МЕН ОЯНДЫМ!
             </button>
           </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* Physical DOM Audio Element guarantees Safari recognizes the unlock */}
+      <audio 
+        ref={audioRef}
+        src="/alarm_40s.m4a"
+        preload="auto"
+        loop
+        className="hidden"
+      />
     </>
   )
 }
