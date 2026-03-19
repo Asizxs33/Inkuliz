@@ -32,8 +32,22 @@ function angle(a: Landmark, b: Landmark, c: Landmark): number {
   return Math.acos(Math.min(1, dot / (mag + 1e-6))) * (180 / Math.PI)
 }
 
+import { ML_CLASSIFIER } from './mlClassifier'
+
 export function recognizeGesture(lm: Landmark[]): GestureResult {
   if (!lm || lm.length < 21) return { word: '—', wordKz: '—', confidence: 0 }
+
+  // 1. ML Classification (Cosine Similarity)
+  const mlPrediction = ML_CLASSIFIER.predict(lm)
+  if (mlPrediction) {
+    return {
+      word: mlPrediction.wordKz.toUpperCase(),
+      wordKz: mlPrediction.wordKz,
+      confidence: Math.round(mlPrediction.confidence * 100) / 100
+    }
+  }
+
+  // 2. Fallback to ultra-precise geometric rules
 
   const thumb  = isFingerExtended(lm, 4, 3) // Relaxed thumb detection (pip instead of mcp)
   const index  = isFingerExtended(lm, 8, 6)

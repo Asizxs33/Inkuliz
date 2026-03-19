@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera as CameraIcon, CameraOff, Copy, Languages, Hand, HandMetal, Wifi, RotateCcw, CheckCircle2, SendHorizonal } from 'lucide-react'
+import { Camera as CameraIcon, CameraOff, Copy, Languages, Hand, HandMetal, Wifi, RotateCcw, CheckCircle2, SendHorizonal, Brain } from 'lucide-react'
+import AITrainerModal from '../components/AITrainerModal'
 import { recognizeGesture, GestureHistory, type Landmark, type GestureResult } from '../lib/gestureRecognizer'
 import { rPPGProcessor } from '../lib/rppg'
 import { useBiometricStore } from '../store/biometricStore'
@@ -75,6 +76,7 @@ export default function SignLanguage() {
   const [copied, setCopied] = useState(false)
   const [fps, setFps] = useState(0)
   const [holdingProgress, setHoldingProgress] = useState(0)
+  const [showTrainer, setShowTrainer] = useState(false)
 
   // Live Chat State
   const { id: userId, name: userName } = useUserStore()
@@ -585,7 +587,7 @@ export default function SignLanguage() {
         {/* Session stats */}
         <div className="card">
           <p className="text-xs font-bold text-text-muted uppercase tracking-widest mb-3">СЕАНС СТАТИСТИКАСЫ</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="text-center p-3 bg-bg-secondary rounded-xl">
               <p className="text-2xl font-extrabold text-plum">{history.length}</p>
               <p className="text-xs text-text-muted">ТАНЫЛҒАН</p>
@@ -595,6 +597,12 @@ export default function SignLanguage() {
               <p className="text-xs text-text-muted">СЕНІМДІЛІК</p>
             </div>
           </div>
+          <button 
+             onClick={() => setShowTrainer(true)}
+             className="w-full py-3 bg-gradient-to-r from-plum to-rose text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 shadow-lg shadow-plum/20"
+          >
+             <Brain size={18} /> AI Модельді Үйрету
+          </button>
         </div>
       </div>
 
@@ -693,6 +701,10 @@ export default function SignLanguage() {
           </button>
         </div>
       )}
+      
+      <AnimatePresence>
+         {showTrainer && <AITrainerModal onClose={() => setShowTrainer(false)} />}
+      </AnimatePresence>
 
     </div>
   )
