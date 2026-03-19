@@ -142,28 +142,30 @@ export default function GlobalBiometrics() {
   }, [])
 
   // Safari Autoplay Unlock: guarantees the alarm can play without NotAllowedError
+  // We use the capture phase ({ capture: true }) because React onClick events often stop propagation, 
+  // which would kill the unlock listener before it fires if placed on the bubble phase!
   useEffect(() => {
     const unlockAudio = () => {
       if (audioRef.current && audioRef.current.paused) {
-        audioRef.current.volume = 0; // mute the initial quick unlock play
+        // Safari strictly requires volume > 0 to grant an active unlock! We pause immediately instead.
         const p = audioRef.current.play()
         if (p !== undefined) {
           p.then(() => {
             audioRef.current?.pause()
-            if (audioRef.current) audioRef.current.volume = 1 // restore volume
-          }).catch(() => {
-            if (audioRef.current) audioRef.current.volume = 1
-          })
+          }).catch(() => {})
         }
-        document.removeEventListener('click', unlockAudio)
-        document.removeEventListener('touchstart', unlockAudio)
+        
+        document.removeEventListener('click', unlockAudio, { capture: true })
+        document.removeEventListener('touchstart', unlockAudio, { capture: true })
       }
     }
-    document.addEventListener('click', unlockAudio)
-    document.addEventListener('touchstart', unlockAudio)
+    
+    document.addEventListener('click', unlockAudio, { capture: true })
+    document.addEventListener('touchstart', unlockAudio, { capture: true })
+    
     return () => {
-      document.removeEventListener('click', unlockAudio)
-      document.removeEventListener('touchstart', unlockAudio)
+      document.removeEventListener('click', unlockAudio, { capture: true })
+      document.removeEventListener('touchstart', unlockAudio, { capture: true })
     }
   }, [])
 
