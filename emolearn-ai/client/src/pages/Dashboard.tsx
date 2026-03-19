@@ -190,15 +190,15 @@ export default function Dashboard() {
                 </div>
               </button>
               <button 
-                onClick={() => navigate('/dictionary')}
+                onClick={() => navigate('/ai-tutor')}
                 className="card hover:shadow-lg transition-all group flex items-center gap-4 py-5 border-2 border-transparent hover:border-amber-300"
               >
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                   <Gamepad2 size={24} className="text-white" />
                 </div>
                 <div className="text-left">
-                  <p className="font-bold text-text-primary text-sm">Викторина</p>
-                  <p className="text-xs text-text-muted">10 сұрақ тест</p>
+                  <p className="font-bold text-text-primary text-sm">AI Репетитор</p>
+                  <p className="text-xs text-text-muted">Эмоция-сезгіш AI мұғалім</p>
                 </div>
               </button>
             </div>

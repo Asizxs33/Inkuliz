@@ -10,6 +10,7 @@ import Teacher from './pages/Teacher'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import LiveChat from './pages/LiveChat'
+import AITutor from './pages/AITutor'
 import GlobalBiometrics from './components/GlobalBiometrics'
 import { useUserStore } from './store/userStore'
 
@@ -59,6 +60,7 @@ export default function App() {
         <Route path="/dictionary" element={<ProtectedLayout><Dictionary /></ProtectedLayout>} />
         <Route path="/profile" element={<ProtectedLayout><Profile /></ProtectedLayout>} />
         <Route path="/live-chat" element={<ProtectedLayout><LiveChat /></ProtectedLayout>} />
+        <Route path="/ai-tutor" element={<ProtectedLayout><AITutor /></ProtectedLayout>} />
         
         {/* Teacher Routes */}
         <Route path="/teacher" element={<ProtectedLayout><Teacher /></ProtectedLayout>} />
