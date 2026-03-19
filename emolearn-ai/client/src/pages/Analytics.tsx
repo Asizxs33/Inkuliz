@@ -78,7 +78,7 @@ export default function Analytics() {
 
   const [timeline, setTimeline] = useState<TimelinePoint[]>(loadTimeline())
   const [sessionLog] = useState<SessionLog[]>(loadSessionLog())
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Snapshot emotion timeline every 10 seconds
   useEffect(() => {
