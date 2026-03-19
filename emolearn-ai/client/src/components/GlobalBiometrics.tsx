@@ -129,8 +129,10 @@ export default function GlobalBiometrics() {
   // Initialize and handle Alarm Audio
   useEffect(() => {
     // Only works due to Vite serving /public natively on /
-    audioRef.current = new window.Audio('/alert.mp3')
-    audioRef.current.loop = true
+    const audio = new window.Audio('/alert.mp3')
+    audio.loop = true
+    audio.preload = 'auto'
+    audioRef.current = audio
     return () => {
       if (audioRef.current) {
         audioRef.current.pause()
@@ -143,12 +145,17 @@ export default function GlobalBiometrics() {
   useEffect(() => {
     const unlockAudio = () => {
       if (audioRef.current && audioRef.current.paused) {
+        audioRef.current.volume = 0; // mute the initial quick play
         const p = audioRef.current.play()
         if (p !== undefined) {
           p.then(() => {
             audioRef.current?.pause()
-            audioRef.current!.currentTime = 0
-          }).catch(() => {})
+            if (audioRef.current) {
+               audioRef.current.volume = 1 // restore volume
+            }
+          }).catch(() => {
+            if (audioRef.current) audioRef.current.volume = 1
+          })
         }
         document.removeEventListener('click', unlockAudio)
         document.removeEventListener('touchstart', unlockAudio)
@@ -165,10 +172,22 @@ export default function GlobalBiometrics() {
   // Trigger alarm audio play/pause
   useEffect(() => {
     if (isSleeping && audioRef.current) {
-      audioRef.current.currentTime = 40
-      audioRef.current.play().catch(e => console.error('Audio play blocked:', e))
+      audioRef.current.volume = 1
+      try {
+        if (audioRef.current.readyState >= 1) {
+          audioRef.current.currentTime = 40
+        }
+      } catch (e) {
+        console.warn('Could not seek audio:', e)
+      }
+      
+      const playPromise = audioRef.current.play()
+      if (playPromise !== undefined) {
+        playPromise.catch(e => console.error('Audio play blocked:', e))
+      }
     } else if (!isSleeping && audioRef.current) {
       audioRef.current.pause()
+      try { audioRef.current.currentTime = 0 } catch(e) {}
     }
   }, [isSleeping])
 
