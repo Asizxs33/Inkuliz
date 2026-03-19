@@ -91,8 +91,10 @@ export default function GlobalBiometrics() {
   // Particle System state
   const particlesRef = useRef<Array<{x: number, y: number, life: number, color: string}>>([])
   
-  // Custom Audio Alarm
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  // Web Audio API Alarm (Fixes Safari NotSupportedError permanently)
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const audioBufferRef = useRef<AudioBuffer | null>(null)
+  const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null)
 
   const setBpm = useBiometricStore(s => s.setBpm)
   const setEmotion = useBiometricStore(s => s.setEmotion)
@@ -126,40 +128,42 @@ export default function GlobalBiometrics() {
     })
   }, [])
 
-  // Initialize and handle Alarm Audio
+  // Initialize Web Audio API and fetch/decode the MP3
   useEffect(() => {
-    // Use Media Fragments API (#t=40) to tell Safari to start fetching from 40s naturally
-    const audio = new window.Audio('/alert.mp3#t=40')
-    audio.loop = true
-    audio.preload = 'auto'
-    audioRef.current = audio
+    const loadAudio = async () => {
+      try {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+        audioCtxRef.current = new AudioContextClass()
+        
+        const response = await fetch('/alert.mp3')
+        const arrayBuffer = await response.arrayBuffer()
+        
+        // Decode audio data into memory
+        audioBufferRef.current = await audioCtxRef.current.decodeAudioData(arrayBuffer)
+      } catch (err) {
+        console.error('Failed to load or decode audio buffer:', err)
+      }
+    }
+    loadAudio()
+    
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current = null
+      if (sourceNodeRef.current) {
+        try { sourceNodeRef.current.stop() } catch(e) {}
+      }
+      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+        audioCtxRef.current.close().catch(() => {})
       }
     }
   }, [])
 
-  // Safari Autoplay Unlock: requires a user interaction to allow future async plays
+  // Safari Autoplay Unlock: requires restoring AudioContext state
   useEffect(() => {
     const unlockAudio = () => {
-      if (audioRef.current && audioRef.current.paused) {
-        audioRef.current.volume = 0; // mute the initial quick play
-        const p = audioRef.current.play()
-        if (p !== undefined) {
-          p.then(() => {
-            audioRef.current?.pause()
-            if (audioRef.current) {
-               audioRef.current.volume = 1 // restore volume
-            }
-          }).catch(() => {
-            if (audioRef.current) audioRef.current.volume = 1
-          })
-        }
-        document.removeEventListener('click', unlockAudio)
-        document.removeEventListener('touchstart', unlockAudio)
+      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {})
       }
+      document.removeEventListener('click', unlockAudio)
+      document.removeEventListener('touchstart', unlockAudio)
     }
     document.addEventListener('click', unlockAudio)
     document.addEventListener('touchstart', unlockAudio)
@@ -169,18 +173,40 @@ export default function GlobalBiometrics() {
     }
   }, [])
 
-  // Trigger alarm audio play/pause
+  // Trigger alarm audio using AudioBufferSourceNode
   useEffect(() => {
-    if (isSleeping && audioRef.current) {
-      audioRef.current.volume = 1
-      const playPromise = audioRef.current.play()
-      if (playPromise !== undefined) {
-        playPromise.catch(e => console.error('Audio play blocked:', e))
+    if (isSleeping && audioCtxRef.current && audioBufferRef.current) {
+      // Ensure context is running and unlocked
+      if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {})
       }
-    } else if (!isSleeping && audioRef.current) {
-      audioRef.current.pause()
-      // Safely queue the seek back to 40s while paused so Safari buffers it without rejecting a live play promise
-      try { audioRef.current.currentTime = 40 } catch(e) {}
+      
+      // Stop any existing sound
+      if (sourceNodeRef.current) {
+        try { sourceNodeRef.current.stop() } catch(e) {}
+      }
+      
+      // Create new audio source
+      const source = audioCtxRef.current.createBufferSource()
+      source.buffer = audioBufferRef.current
+      source.connect(audioCtxRef.current.destination)
+      source.loop = true
+      
+      try {
+        // start(when, offset_in_seconds) -> Wait 0s, start playing from 40s mark
+        source.start(0, 40)
+      } catch(e) {
+        console.warn('WebAudio Start Error:', e)
+      }
+      
+      sourceNodeRef.current = source
+      
+    } else if (!isSleeping) {
+      // Stop the sound immediately
+      if (sourceNodeRef.current) {
+        try { sourceNodeRef.current.stop() } catch(e) {}
+        sourceNodeRef.current = null
+      }
     }
   }, [isSleeping])
 
