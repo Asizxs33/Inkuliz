@@ -40,6 +40,9 @@ const emotionMap: Record<string, string> = {
 }
 
 export class EmotionDetector {
+  private recentEmotions: string[] = []
+  private readonly HISTORY_SIZE = 5
+
   async loadModels(): Promise<void> {
     if (modelsLoaded) return
     if (modelsLoading) {
@@ -88,17 +91,38 @@ export class EmotionDetector {
       )
       const [dominantEmotion, dominantScore] = sorted[0] as [string, number]
 
+      // Push to history for smoothing
+      this.recentEmotions.push(dominantEmotion)
+      if (this.recentEmotions.length > this.HISTORY_SIZE) {
+        this.recentEmotions.shift()
+      }
+
+      // Voting system: find the most frequent emotion in the recent history
+      const votes: Record<string, number> = {}
+      for (const e of this.recentEmotions) {
+        votes[e] = (votes[e] || 0) + 1
+      }
+      
+      let stableEmotion = dominantEmotion
+      let maxVotes = 0
+      for (const [e, count] of Object.entries(votes)) {
+        if (count > maxVotes) {
+          maxVotes = count
+          stableEmotion = e
+        }
+      }
+
       const stressEmotions = ['angry', 'fearful', 'disgusted']
       const tiredEmotions = ['sad', 'neutral']
 
       let cognitive = 50
-      if (stressEmotions.includes(dominantEmotion)) cognitive = 85
-      if (dominantEmotion === 'happy') cognitive = 35
-      if (tiredEmotions.includes(dominantEmotion)) cognitive = 60
+      if (stressEmotions.includes(stableEmotion)) cognitive = 85
+      if (stableEmotion === 'happy') cognitive = 35
+      if (tiredEmotions.includes(stableEmotion)) cognitive = 60
 
       return {
-        emotion: dominantEmotion,
-        emotionKz: emotionMap[dominantEmotion] || 'БЕЛГІСІЗ',
+        emotion: stableEmotion,
+        emotionKz: emotionMap[stableEmotion] || 'БЕЛГІСІЗ',
         confidence: Math.round(dominantScore * 100),
         cognitive,
       }

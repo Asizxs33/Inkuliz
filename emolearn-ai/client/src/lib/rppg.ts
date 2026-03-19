@@ -2,6 +2,7 @@ export class rPPGProcessor {
   private greenBuffer: number[] = [];
   private readonly BUFFER = 150;
   private readonly FPS = 30;
+  private lastValidBpm: number = 0;
 
   processFrame(imageData: ImageData): number | null {
     const { data, width, height } = imageData;
@@ -31,14 +32,28 @@ export class rPPGProcessor {
     const fft = this.fft(norm);
     const freqs = fft.map((_, i) => (i * this.FPS) / this.BUFFER);
 
-    let maxP = 0, freq = 1.2;
+    let maxP = 0, freq = 1.2; // default 72 bpm
     freqs.forEach((f, i) => {
+      // Human pulse range ~48 to 180 (0.8 Hz to 3.0 Hz)
       if (f >= 0.8 && f <= 3.0 && Math.abs(fft[i]) > maxP) {
         maxP = Math.abs(fft[i]);
         freq = f;
       }
     });
-    return Math.round(freq * 60);
+    
+    const currentBpm = Math.round(freq * 60);
+
+    // Apply Exponential Moving Average (EMA) smoothing
+    if (this.lastValidBpm === 0 || maxP < 500) {
+      // If signal is weak or first time, trust the new value somewhat or keep old
+      this.lastValidBpm = this.lastValidBpm === 0 ? currentBpm : this.lastValidBpm * 0.95 + currentBpm * 0.05;
+    } else {
+      // Smooth out normal changes
+      const alpha = 0.15; // 15% new, 85% old (Heavy smoothing)
+      this.lastValidBpm = this.lastValidBpm * (1 - alpha) + currentBpm * alpha;
+    }
+
+    return Math.round(this.lastValidBpm);
   }
 
   private fft(sig: number[]): number[] {
