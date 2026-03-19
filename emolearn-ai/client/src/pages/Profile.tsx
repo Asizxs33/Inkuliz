@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
-import { Shield, Globe, Bell, CheckCircle, Lock, Camera, ChevronRight, Award, Zap, BookOpen, User, Calendar, Trophy, BarChart2, Target, Heart, Brain, Hand, Sparkles, GraduationCap, Mail, Building } from 'lucide-react'
+import { Shield, Globe, Bell, CheckCircle, Lock, Camera, ChevronRight, Award, Zap, BookOpen, User, Calendar, Trophy, BarChart2, Target, Heart, Brain, Hand, Sparkles, GraduationCap, Mail, Building, LogOut } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useUserStore } from '../store/userStore'
 import { useBiometricStore } from '../store/biometricStore'
 import { DICTIONARY_DATA } from '../lib/dictionaryData'
@@ -58,8 +59,9 @@ function getBioHistory() {
 }
 
 export default function Profile() {
-  const { name, email, university, course, role } = useUserStore()
+  const { name, email, university, course, role, logout } = useUserStore()
   const { isCameraEnabled, bpm, emotion, cognitive, confidence } = useBiometricStore()
+  const navigate = useNavigate()
   
   const [notifEnabled, setNotifEnabled] = useState(true)
   
@@ -107,6 +109,13 @@ export default function Profile() {
                   <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${notifEnabled ? 'left-6' : 'left-1'}`} />
                 </button>
               </div>
+              {/* Logout */}
+              <button 
+                onClick={() => { logout(); navigate('/login') }}
+                className="flex items-center gap-3 p-3 rounded-xl bg-red-50 text-danger font-bold text-sm hover:bg-red-100 transition-colors w-full"
+              >
+                <LogOut size={18} /> Аккаунттан шығу
+              </button>
             </div>
           </motion.div>
 
