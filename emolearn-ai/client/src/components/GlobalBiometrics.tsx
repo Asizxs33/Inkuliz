@@ -7,6 +7,9 @@ import { emitBiometricUpdate } from '../lib/socket'
 import { Camera, RefreshCw, CameraOff, Activity } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
+// Force Vite to bundle the audio properly so Vercel sets the correct MIME type
+import alarmSound from '../assets/alarm_40s.m4a'
+
 // Singleton MediaPipe loader
 let mpLoaded = false
 let mpLoading = false
@@ -561,10 +564,10 @@ export default function GlobalBiometrics() {
         )}
       </AnimatePresence>
       
-      {/* Physical DOM Audio Element guarantees Safari recognizes the unlock */}
+      {/* Physical DOM Audio Element imported magically via Vite assures Safari recognizes the unlock and sets correct MIME types */}
       <audio 
         ref={audioRef}
-        src="/alarm_40s.m4a"
+        src={alarmSound}
         preload="auto"
         loop
         className="hidden"
