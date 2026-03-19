@@ -3,7 +3,7 @@ import { Send, FileText, AlertTriangle, Heart, User, SendHorizonal, Activity, Pl
 import { useState, useEffect, useRef } from 'react'
 import { useBiometricStore } from '../store/biometricStore'
 import { useUserStore } from '../store/userStore'
-import { getSocket } from '../lib/socket'
+import { getSocket, sendNotification } from '../lib/socket'
 
 const statusColors: Record<string, { border: string; text: string; bg: string }> = {
   focused: { border: 'border-plum', text: 'text-plum', bg: 'bg-plum-pale' },
@@ -34,6 +34,56 @@ export default function Teacher() {
   
   // Report modal
   const [showReport, setShowReport] = useState(false)
+
+  // Invite modal
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+
+  const handleSearchStudent = async () => {
+    if (!searchQuery.trim() || searchQuery.length < 2) return
+    setIsSearching(true)
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/search-student?q=${encodeURIComponent(searchQuery)}`)
+      const data = await res.json()
+      setSearchResults(data.students || [])
+    } finally { setIsSearching(false) }
+  }
+
+  const handleInviteStudent = async (student: any) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teacher_id: teacherId,
+          student_id: student.id,
+          class_id: activeClass.id,
+          class_name: activeClass.name,
+          teacher_name: name
+        })
+      })
+      const data = await res.json()
+      if (data.error) {
+        alert(data.error)
+      } else {
+        // Send real-time socket notification to the student
+        sendNotification(
+          student.id,
+          'info',
+          `Мұғалім ${name} сізді "${activeClass.name}" сыныбына шақырды. Баптаулардан қабылдаңыз!`,
+          'EmoLearn AI Систем'
+        )
+        alert('Шақыру жіберілді!')
+        setShowInviteModal(false)
+        setSearchQuery('')
+        setSearchResults([])
+      }
+    } catch {
+      alert('Қате кетті')
+    }
+  }
 
   // Fetch classes on mount
   useEffect(() => {
@@ -247,6 +297,15 @@ export default function Teacher() {
           </select>
 
           <span className="text-rose font-bold text-sm bg-rose-pale px-4 py-2 rounded-full">LIVE MODE</span>
+
+          {/* Invite Student Button */}
+          <button 
+            onClick={() => setShowInviteModal(true)}
+            className="btn-primary px-4 py-2 text-sm font-bold flex items-center gap-2"
+          >
+            <Plus size={16} /> Студент шақыру
+          </button>
+
 
           {/* Live Stats */}
           <div className="flex items-center gap-3 text-xs font-bold">
@@ -551,6 +610,70 @@ export default function Teacher() {
                     </p>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Invite Student Modal */}
+      <AnimatePresence>
+        {showInviteModal && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowInviteModal(false)} />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl"
+            >
+              <button onClick={() => setShowInviteModal(false)} className="absolute right-4 top-4 text-text-muted hover:text-text-primary">
+                <X size={24} />
+              </button>
+              <h2 className="text-xl font-black text-text-primary mb-2">Оқушыны шақыру</h2>
+              <p className="text-sm text-text-muted mb-4">{activeClass?.name} сыныбына оқушының поштасын жазып іздеңіз</p>
+              
+              <div className="flex gap-2 mb-4">
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSearchStudent()}
+                  placeholder="Оқушының поштасы немесе аты..."
+                  className="flex-1 px-4 py-2 border border-border-soft rounded-xl text-sm focus:outline-none focus:border-plum"
+                />
+                <button 
+                  onClick={handleSearchStudent}
+                  disabled={isSearching}
+                  className="bg-plum text-white px-4 py-2 rounded-xl text-sm font-bold disabled:opacity-50"
+                >
+                  Іздеу
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+                {searchResults.length === 0 && searchQuery && !isSearching && (
+                  <p className="text-center text-sm text-text-muted py-4">Оқушы табылмады</p>
+                )}
+                {searchResults.map(student => (
+                  <div key={student.id} className="flex items-center justify-between p-3 border border-border-soft rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-plum-pale flex items-center justify-center text-plum font-bold text-xs">
+                        {student.name[0]}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-text-primary leading-tight">{student.name}</p>
+                        <p className="text-[10px] text-text-muted leading-tight">{student.email}</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => handleInviteStudent(student)}
+                      className="text-xs bg-plum-pale text-plum font-bold px-3 py-1.5 rounded-lg hover:bg-plum hover:text-white transition-colors"
+                    >
+                      Шақыру
+                    </button>
+                  </div>
+                ))}
               </div>
             </motion.div>
           </div>

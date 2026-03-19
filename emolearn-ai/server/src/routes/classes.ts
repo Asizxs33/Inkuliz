@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { db } from '../db/index.js'
-import { classes, classStudents, users } from '../db/schema.js'
-import { eq, and } from 'drizzle-orm'
+import { classes, classStudents, users, alerts } from '../db/schema.js'
+import { eq, and, ilike } from 'drizzle-orm'
 
 export const classesRouter = Router()
 
@@ -61,6 +61,97 @@ classesRouter.post('/join', async (req, res) => {
     res.status(500).json({ error: 'Failed to join class' })
   }
 })
+
+// GET /api/classes/search-student?q=... (Teacher searches for a student to invite)
+classesRouter.get('/search-student', async (req, res) => {
+  try {
+    const q = req.query.q as string
+    if (!q || q.length < 2) return res.json({ students: [] })
+    
+    const results = await db.select({
+      id: users.id,
+      name: users.name,
+      email: users.email
+    })
+    .from(users)
+    .where(
+      and(
+        eq(users.role, 'student'),
+        ilike(users.email, `%${q}%`) // Since we want precise or fuzzy email search
+      )
+    )
+    .limit(5)
+    
+    res.json({ students: results })
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to search students' })
+  }
+})
+
+// POST /api/classes/invite (Teacher invites a student)
+classesRouter.post('/invite', async (req, res) => {
+  try {
+    const { teacher_id, student_id, class_id, class_name, teacher_name } = req.body
+    
+    // Check if user is already in the class
+    const existingMem = await db.select().from(classStudents).where(and(eq(classStudents.class_id, class_id), eq(classStudents.student_id, student_id)))
+    if (existingMem.length > 0) {
+      return res.status(400).json({ error: 'Студент бұл сыныпта бар (Student already in class)' })
+    }
+
+    // Insert an alert for the invite
+    await db.insert(alerts).values({
+      teacher_id,
+      student_id,
+      type: 'class_invite',
+      message: JSON.stringify({ class_id, class_name, teacher_name }),
+      is_read: false
+    })
+
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to send invite' })
+  }
+})
+
+// GET /api/classes/invitations/:studentId (Student fetches their pending invites)
+classesRouter.get('/invitations/:studentId', async (req, res) => {
+  try {
+    const studentId = req.params.studentId
+    const invites = await db.select().from(alerts).where(and(eq(alerts.student_id, studentId), eq(alerts.type, 'class_invite'), eq(alerts.is_read, false)))
+    res.json({ invitations: invites })
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch invites' })
+  }
+})
+
+// POST /api/classes/accept-invite (Student accepts an invite)
+classesRouter.post('/accept-invite', async (req, res) => {
+  try {
+    const { alert_id, student_id, class_id } = req.body
+    
+    // Add to class
+    await db.insert(classStudents).values({ class_id, student_id }).onConflictDoNothing()
+    // Mark alert as read (or delete it, but marking read is fine)
+    await db.update(alerts).set({ is_read: true }).where(eq(alerts.id, alert_id))
+    
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to accept invite' })
+  }
+})
+
+// POST /api/classes/decline-invite (Student declines an invite)
+classesRouter.post('/decline-invite', async (req, res) => {
+  try {
+    const { alert_id } = req.body
+    await db.update(alerts).set({ is_read: true }).where(eq(alerts.id, alert_id))
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to decline invite' })
+  }
+})
+
 
 // GET /api/classes/student/:studentId (Get class the student belongs to)
 // MUST be before /:teacherId to avoid route collision

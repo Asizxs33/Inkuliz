@@ -9,10 +9,12 @@ import { onNotification } from '../../lib/socket'
 interface NotificationItem {
   id: string
   type: 'info' | 'success' | 'alert' | string
-  message: string
+  message: string | React.ReactNode
   from: string
   time: string
   read: boolean
+  isInvite?: boolean
+  inviteData?: any
 }
 
 export function Navbar() {
@@ -34,18 +36,52 @@ export function Navbar() {
       // Only process if it's for me or a broadcast (empty targetUserId)
       if (data.targetUserId && data.targetUserId !== userId) return
       
+      const parsedMessage = data.type === 'class_invite' ? JSON.parse(data.message) : null
+      
       const newItem: NotificationItem = {
-        id: Date.now().toString(),
+        id: data.id || Date.now().toString(),
         type: data.type || 'info',
-        message: data.message,
-        from: data.from || 'Жүйе',
+        message: data.type === 'class_invite' 
+          ? `Сізді "${parsedMessage?.class_name}" сыныбына шақырды.`
+          : data.message,
+        from: parsedMessage?.teacher_name || data.from || 'Жүйе',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        read: false
+        read: false,
+        isInvite: data.type === 'class_invite',
+        inviteData: { alert_id: data.id, class_id: parsedMessage?.class_id, ...parsedMessage }
       }
       setNotifications(prev => [newItem, ...prev])
     })
     return cleanup
   }, [userId])
+
+  // Fetch initial exact notifications (like pending invites)
+  useEffect(() => {
+    if (!userId || role === 'teacher') return
+    const fetchInvites = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/invitations/${userId}`)
+        const data = await res.json()
+        if (data.invitations) {
+          const loaded = data.invitations.map((inv: any) => {
+            const parsed = JSON.parse(inv.message)
+            return {
+              id: inv.id,
+              type: 'class_invite',
+              message: `Сізді "${parsed.class_name}" сыныбына шақырды.`,
+              from: parsed.teacher_name || 'Мұғалім',
+              time: new Date(inv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              read: false,
+              isInvite: true,
+              inviteData: { alert_id: inv.id, class_id: parsed.class_id, ...parsed }
+            }
+          })
+          setNotifications(prev => [...loaded, ...prev])
+        }
+      } catch (err) { console.error(err) }
+    }
+    fetchInvites()
+  }, [userId, role])
 
   // Optional: Add some mock notifications just to show it works, if list is empty
   useEffect(() => {
@@ -154,9 +190,46 @@ export function Navbar() {
                               <span>{notif.from}</span>
                               <span className="font-normal opacity-70">{notif.time}</span>
                             </p>
-                            <p className="text-sm text-text-primary font-medium leading-tight">
+                            <p className="text-sm text-text-primary font-medium leading-tight mb-2">
                               {notif.message}
                             </p>
+                            {notif.isInvite && !notif.read && (
+                              <div className="flex gap-2">
+                                <button 
+                                  onClick={async (e) => {
+                                    e.stopPropagation()
+                                    try {
+                                      await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/accept-invite`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ alert_id: notif.inviteData.alert_id, student_id: userId, class_id: notif.inviteData.class_id })
+                                      })
+                                      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true, message: 'Шақыру қабылданды ✅' } : n))
+                                      window.location.reload()
+                                    } catch {}
+                                  }}
+                                  className="btn-primary text-[10px] px-3 py-1 font-bold"
+                                >
+                                  Қабылдау
+                                </button>
+                                <button 
+                                  onClick={async (e) => {
+                                    e.stopPropagation()
+                                    try {
+                                      await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/decline-invite`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ alert_id: notif.inviteData.alert_id })
+                                      })
+                                      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true, message: 'Шақырудан бас тартылды ❌' } : n))
+                                    } catch {}
+                                  }}
+                                  className="bg-gray-100 text-text-muted hover:bg-gray-200 text-[10px] px-3 py-1 font-bold rounded-lg transition-colors"
+                                >
+                                  Бас тарту
+                                </button>
+                              </div>
+                            )}
                           </div>
                           {!notif.read && <div className="w-2 h-2 rounded-full bg-plum mt-3 shrink-0" />}
                         </div>
