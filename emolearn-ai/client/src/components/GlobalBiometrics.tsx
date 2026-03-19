@@ -279,8 +279,11 @@ export default function GlobalBiometrics() {
               setCognitive(emotionResult.cognitive)
               isStressRef.current = ['АШУЛЫ', 'ҚОРЫҚҚАН', 'ЖИІРКЕНГЕН'].includes(emotionResult.emotionKz)
               
-              // Sleep Detection Logic - Trigger Kairat Nurtas if sleepy for 3 frames!
-              if (['ШАРШАҒАН', 'ЗЕРІККЕН', 'БЕЙҚАМ', 'ЖАЛЫҚҚАН'].includes(emotionResult.emotionKz)) {
+              // Sleep Detection Logic - Trigger Kairat Nurtas if sleepy/eyes closed for 3 seconds!
+              if (
+                emotionResult.isEyesClosed || 
+                ['ҰЙҚЫДА', 'ШАРШАҒАН', 'ЗЕРІККЕН', 'БЕЙҚАМ', 'ЖАЛЫҚҚАН'].includes(emotionResult.emotionKz)
+              ) {
                 sleepCounterRef.current += 1
                 if (sleepCounterRef.current >= 3 && !isSleeping) {
                    setIsSleeping(true)

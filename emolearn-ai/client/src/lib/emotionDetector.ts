@@ -27,6 +27,7 @@ export interface EmotionResult {
   emotionKz: string
   confidence: number
   cognitive: number
+  isEyesClosed: boolean
 }
 
 const emotionMap: Record<string, string> = {
@@ -37,6 +38,16 @@ const emotionMap: Record<string, string> = {
   disgusted: 'ЖИІРКЕНГЕН',
   surprised: 'ТАҢҒАЛҒАН',
   neutral: 'ШОҒЫРЛАНҒАН',
+}
+
+// Function to calculate Eye Aspect Ratio (EAR) to detect blinks/closed eyes
+function calculateEAR(eye: any[]): number {
+  if (!eye || eye.length < 6) return 1.0;
+  // face-api.js eye landmarks: 0 (left corner), 1,2 (top), 3 (right corner), 4,5 (bottom)
+  const vertical1 = Math.hypot(eye[1].x - eye[5].x, eye[1].y - eye[5].y);
+  const vertical2 = Math.hypot(eye[2].x - eye[4].x, eye[2].y - eye[4].y);
+  const horizontal = Math.hypot(eye[0].x - eye[3].x, eye[0].y - eye[3].y);
+  return (vertical1 + vertical2) / (2.0 * horizontal);
 }
 
 export class EmotionDetector {
@@ -60,6 +71,7 @@ export class EmotionDetector {
       const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'
       await Promise.all([
         api.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        api.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
         api.nets.faceExpressionNet.loadFromUri(MODEL_URL),
       ])
       modelsLoaded = true
@@ -81,9 +93,20 @@ export class EmotionDetector {
     try {
       const result = await api
         .detectSingleFace(videoElement, new api.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
         .withFaceExpressions()
 
       if (!result) return null
+
+      // Check for closed eyes using EAR
+      const leftEye = result.landmarks.getLeftEye()
+      const rightEye = result.landmarks.getRightEye()
+      const leftEAR = calculateEAR(leftEye)
+      const rightEAR = calculateEAR(rightEye)
+      const avgEAR = (leftEAR + rightEAR) / 2.0
+      
+      // Typical EAR threshold for closed eyes is ~0.25
+      const isEyesClosed = avgEAR < 0.25
 
       const expressions = result.expressions
       const sorted = Object.entries(expressions).sort(
@@ -122,9 +145,10 @@ export class EmotionDetector {
 
       return {
         emotion: stableEmotion,
-        emotionKz: emotionMap[stableEmotion] || 'БЕЛГІСІЗ',
+        emotionKz: isEyesClosed ? 'ҰЙҚЫДА' : (emotionMap[stableEmotion] || 'БЕЛГІСІЗ'),
         confidence: Math.round(dominantScore * 100),
         cognitive,
+        isEyesClosed
       }
     } catch (err) {
       console.debug('Emotion detection error:', err)
