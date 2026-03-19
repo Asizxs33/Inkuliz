@@ -139,6 +139,29 @@ export default function GlobalBiometrics() {
     }
   }, [])
 
+  // Safari Autoplay Unlock: requires a user interaction to allow future async plays
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (audioRef.current && audioRef.current.paused) {
+        const p = audioRef.current.play()
+        if (p !== undefined) {
+          p.then(() => {
+            audioRef.current?.pause()
+            audioRef.current!.currentTime = 0
+          }).catch(() => {})
+        }
+        document.removeEventListener('click', unlockAudio)
+        document.removeEventListener('touchstart', unlockAudio)
+      }
+    }
+    document.addEventListener('click', unlockAudio)
+    document.addEventListener('touchstart', unlockAudio)
+    return () => {
+      document.removeEventListener('click', unlockAudio)
+      document.removeEventListener('touchstart', unlockAudio)
+    }
+  }, [])
+
   // Trigger alarm audio play/pause
   useEffect(() => {
     if (isSleeping && audioRef.current) {
