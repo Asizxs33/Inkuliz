@@ -9,6 +9,7 @@ export interface DictionaryWord {
   gesture: string;
   emoji: string;
   animation?: 'wave' | 'bounce' | 'pulse' | 'shake';
+  gifUrl?: string;
 }
 
 export const DICTIONARY_CATEGORIES = [
@@ -22,9 +23,9 @@ export const DICTIONARY_CATEGORIES = [
 
 export const DICTIONARY_DATA: DictionaryWord[] = [
   // Негізгі
-  { id: 'w1', wordKz: 'Сәлем', transliteration: 'Salem (Сәлем)', category: 'basic', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Күнделікті амандасу үшін қолданылады. Қолды бос ұстап, алақанды қаратып бұлғау керек.', gesture: 'Ашық алақан', emoji: '👋', animation: 'wave' },
-  { id: 'w2', wordKz: 'Жақсы', transliteration: 'Zhaqsy (Жақсы)', category: 'basic', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Бір нәрсе көңіліңізден шыққанда немесе келісім білдіргенде.', gesture: 'Бас бармақ жоғары', emoji: '👍', animation: 'bounce' },
-  { id: 'w3', wordKz: 'Рахмет', transliteration: 'Rakhmet (Рахмет/Рақмет)', category: 'basic', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Ризашылық, алғыс білдіру үшін қолданылады.', gesture: 'OK белгісі', emoji: '👌', animation: 'pulse' },
+  { id: 'w1', wordKz: 'Сәлем', transliteration: 'Salem (Сәлем)', category: 'basic', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Күнделікті амандасу үшін қолданылады. Қолды бос ұстап, алақанды қаратып бұлғау керек.', gesture: 'Ашық алақан', emoji: '👋', animation: 'wave', gifUrl: 'https://media.giphy.com/media/l41Ys1fQky5raqvMQ/giphy.gif' },
+  { id: 'w2', wordKz: 'Жақсы', transliteration: 'Zhaqsy (Жақсы)', category: 'basic', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Бір нәрсе көңіліңізден шыққанда немесе келісім білдіргенде.', gesture: 'Бас бармақ жоғары', emoji: '👍', animation: 'bounce', gifUrl: 'https://media.giphy.com/media/26FPEB9Kpq7gGtoQ0/giphy.gif' },
+  { id: 'w3', wordKz: 'Рахмет', transliteration: 'Rakhmet (Рахмет/Рақмет)', category: 'basic', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Ризашылық, алғыс білдіру үшін қолданылады.', gesture: 'OK белгісі', emoji: '👌', animation: 'pulse', gifUrl: 'https://media.giphy.com/media/3o7TKLdB2Z2Sls2h9K/giphy.gif' },
   { id: 'w4', wordKz: 'Мен', transliteration: 'Men (Мен)', category: 'basic', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Өзін көрсету немесе өзі туралы айтқанда. Сұқ саусақпен өзін көрсету.', gesture: 'Сұқ саусақ', emoji: '☝️', animation: 'bounce' },
   { id: 'w5', wordKz: 'Сіз', transliteration: 'Siz (Сіз)', category: 'basic', difficulty: 'ОҢАЙ', color: '#10B981', description: 'Сұхбаттасушыға құрметпен жүгіну.', gesture: 'V белгісі', emoji: '👉', animation: 'pulse' },
   { id: 'w6', wordKz: 'Сүйемін', transliteration: 'Suıemin (Сүйемін/Жақсы көремін)', category: 'basic', difficulty: 'ОРТАША', color: '#F59E0B', description: 'Махаббат, жылы сезім білдіру үшін (ILY белгісі).', gesture: 'ILY белгісі', emoji: '🤟', animation: 'pulse' },

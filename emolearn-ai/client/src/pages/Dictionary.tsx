@@ -194,15 +194,19 @@ export default function Dictionary() {
                   exit={{ opacity: 0, scale: 1.1 }}
                   className="flex flex-col items-center gap-2"
                 >
-                  <div className="w-24 h-24 rounded-3xl bg-white border-2 border-plum/20 shadow-xl flex items-center justify-center relative overflow-hidden">
+                  <div className="w-32 h-32 rounded-3xl bg-white border-2 border-plum/20 shadow-xl flex items-center justify-center relative overflow-hidden">
                     {playbackSequence[playbackIndex].gesture !== 'БЕЛГІСІЗ' ? (
-                      <motion.div 
-                        animate={getAnimationProps(playbackSequence[playbackIndex].animation).animate}
-                        transition={getAnimationProps(playbackSequence[playbackIndex].animation).transition}
-                        className="text-6xl drop-shadow-md"
-                      >
-                        {playbackSequence[playbackIndex].emoji}
-                      </motion.div>
+                      playbackSequence[playbackIndex].gifUrl ? (
+                         <img src={playbackSequence[playbackIndex].gifUrl} alt="Gesture GIF" className="w-full h-full object-cover" />
+                      ) : (
+                        <motion.div 
+                          animate={getAnimationProps(playbackSequence[playbackIndex].animation).animate}
+                          transition={getAnimationProps(playbackSequence[playbackIndex].animation).transition}
+                          className="text-6xl drop-shadow-md"
+                        >
+                          {playbackSequence[playbackIndex].emoji}
+                        </motion.div>
+                      )
                     ) : <span className="text-4xl font-bold text-text-muted">?</span>}
                   </div>
                   <p className="text-text-primary font-black text-2xl tracking-wide">{playbackSequence[playbackIndex].wordKz}</p>
