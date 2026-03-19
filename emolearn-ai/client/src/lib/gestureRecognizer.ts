@@ -35,75 +35,62 @@ function angle(a: Landmark, b: Landmark, c: Landmark): number {
 export function recognizeGesture(lm: Landmark[]): GestureResult {
   if (!lm || lm.length < 21) return { word: '—', wordKz: '—', confidence: 0 }
 
-  const thumb  = isFingerExtended(lm, 4, 2)
+  const thumb  = isFingerExtended(lm, 4, 3) // Relaxed thumb detection (pip instead of mcp)
   const index  = isFingerExtended(lm, 8, 6)
   const middle = isFingerExtended(lm, 12, 10)
   const ring   = isFingerExtended(lm, 16, 14)
   const pinky  = isFingerExtended(lm, 20, 18)
 
-  // Thumb up check (thumb tip above wrist, other fingers curled)
-  const thumbUp = lm[4].y < lm[3].y && lm[4].y < lm[2].y &&
-    !index && !middle && !ring && !pinky
+  // Thumb operations
+  const thumbUpAngle = angle(lm[4], lm[3], lm[2])
+  const thumbUpHeight = lm[4].y < lm[3].y && lm[4].y < lm[2].y
+  const thumbUp = thumbUpHeight && thumbUpAngle > 150 && !index && !middle && !ring && !pinky
 
-  // Thumb-index pinch
+  // Thumb-index pinch (OK/Рахмет style)
   const pinchDist = dist(lm[4], lm[8])
-  const isPinch = pinchDist < 0.06
+  const isPinch = pinchDist < 0.04  // tighter pinch
 
-  // Open palm — all 5 extended
-  const openPalm = thumb && index && middle && ring && pinky
+  // Open palm — all 5 extended, but check spread
+  const spreadDistIndexPinky = dist(lm[8], lm[20])
+  const openPalm = thumb && index && middle && ring && pinky && spreadDistIndexPinky > 0.15
 
-  // Peace / V — index + middle up, others curled
-  const peaceSign = !thumb && index && middle && !ring && !pinky
+  // Peace / V — index + middle up widely, others curled tightly
+  const peaceSpread = dist(lm[8], lm[12])
+  const peaceSign = !thumb && index && middle && !ring && !pinky && peaceSpread > 0.05
 
-  // Pointing — only index extended
-  const pointing = !thumb && index && !middle && !ring && !pinky
+  // Pointing (Мен) — ONLY index extended, thumb tightly tucked
+  const pointing = index && !middle && !ring && !pinky && lm[4].x < lm[5].x
 
-  // Fist — all curled
-  const fist = !index && !middle && !ring && !pinky
+  // Fist / Stop — all curled tight
+  const fistDist = dist(lm[8], lm[0])
+  const fist = !index && !middle && !ring && !pinky && fistDist < 0.15
 
-  // ILY — thumb, index, pinky extended
+  // I Love You — thumb, index, pinky fully extended
   const iLoveYou = thumb && index && !middle && !ring && pinky
 
-  // OK sign — thumb-index pinch + others extended
+  // OK sign / Рахмет — firm pinch + other 3 fingers straight
   const okSign = isPinch && middle && ring && pinky
 
-  // All fingers curled except pinky
+  // Pinky Only (Кіші)
   const pinkyOnly = !thumb && !index && !middle && !ring && pinky
 
-  // Spread check — distance between index and pinky tips
-  const spreadDist = dist(lm[8], lm[20])
+  // Very specific pinched fist (Кішкентай)
+  const pinchedFist = isPinch && !middle && !ring && !pinky
+
+  // Phone shape (Телефон)
+  const phoneShape = thumb && !index && !middle && !ring && pinky && dist(lm[4], lm[20]) > 0.15
 
   // RULES → Kazakh sign words
-  if (openPalm && spreadDist > 0.3) {
-    return { word: 'СӘЛЕМ', wordKz: 'Сәлем', confidence: 0.94 }
-  }
-  if (thumbUp) {
-    return { word: 'ЖАҚСЫ', wordKz: 'Жақсы', confidence: 0.96 }
-  }
-  if (peaceSign) {
-    return { word: 'СІЗ', wordKz: 'Сіз', confidence: 0.91 }
-  }
-  if (pointing) {
-    return { word: 'МЕН', wordKz: 'Мен', confidence: 0.89 }
-  }
-  if (iLoveYou) {
-    return { word: 'СҮЙЕМІН', wordKz: 'Сүйемін', confidence: 0.92 }
-  }
-  if (okSign) {
-    return { word: 'РАХМЕТ', wordKz: 'Рахмет', confidence: 0.93 }
-  }
-  if (fist) {
-    return { word: 'СТОП', wordKz: 'Стоп', confidence: 0.88 }
-  }
-  if (pinkyOnly) {
-    return { word: 'КІШІ', wordKz: 'Кіші', confidence: 0.85 }
-  }
-  if (isPinch && !middle && !ring && !pinky) {
-    return { word: 'КІШКЕНТАЙ', wordKz: 'Кішкентай', confidence: 0.87 }
-  }
-  if (thumb && !index && !middle && !ring && pinky) {
-    return { word: 'ТЕЛЕФОН', wordKz: 'Телефон', confidence: 0.90 }
-  }
+  if (openPalm) return { word: 'СӘЛЕМ', wordKz: 'Сәлем', confidence: 0.94 }
+  if (thumbUp) return { word: 'ЖАҚСЫ', wordKz: 'Жақсы', confidence: 0.96 }
+  if (peaceSign) return { word: 'СІЗ', wordKz: 'Сіз', confidence: 0.91 }
+  if (iLoveYou) return { word: 'СҮЙЕМІН', wordKz: 'Сүйемін', confidence: 0.92 }
+  if (okSign) return { word: 'РАХМЕТ', wordKz: 'Рахмет', confidence: 0.93 }
+  if (pointing) return { word: 'МЕН', wordKz: 'Мен', confidence: 0.89 }
+  if (fist) return { word: 'СТОП', wordKz: 'Стоп', confidence: 0.88 }
+  if (pinkyOnly) return { word: 'КІШІ', wordKz: 'Кіші', confidence: 0.85 }
+  if (pinchedFist) return { word: 'КІШКЕНТАЙ', wordKz: 'Кішкентай', confidence: 0.87 }
+  if (phoneShape) return { word: 'ТЕЛЕФОН', wordKz: 'Телефон', confidence: 0.90 }
 
   return { word: '...', wordKz: 'Аяқтауда', confidence: 0 }
 }
