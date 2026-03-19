@@ -105,8 +105,8 @@ export class EmotionDetector {
       const rightEAR = calculateEAR(rightEye)
       const avgEAR = (leftEAR + rightEAR) / 2.0
       
-      // Increased EAR threshold for closed eyes to ~0.35 for better sensitivity
-      const isEyesClosed = avgEAR < 0.35
+      // Adjusted EAR threshold for closed eyes to ~0.29 to find the perfect middle ground
+      const isEyesClosed = avgEAR < 0.29
 
       const expressions = result.expressions
       const sorted = Object.entries(expressions).sort(
