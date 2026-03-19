@@ -135,7 +135,7 @@ export default function GlobalBiometrics() {
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
         audioCtxRef.current = new AudioContextClass()
         
-        const response = await fetch('/alert.mp3')
+        const response = await fetch('/alert_clean.m4a')
         const arrayBuffer = await response.arrayBuffer()
         
         // Decode audio data into memory
