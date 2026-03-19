@@ -38,8 +38,7 @@ export default function WordPracticeModal({ word, onClose }: Props) {
   // Check gesture match
   useEffect(() => {
     if (!handLandmarks || handLandmarks.length === 0 || result === 'correct') return
-    const landmarks = handLandmarks[0]
-    const recognized = recognizeGesture(landmarks)
+    const recognized = recognizeGesture(handLandmarks)
     if (recognized) {
       setGestureResult(recognized)
       // Match by Kazakh word
