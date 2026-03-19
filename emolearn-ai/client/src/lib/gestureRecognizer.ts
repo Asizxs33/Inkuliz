@@ -127,9 +127,10 @@ export function recognizeGesture(hands: Landmark[][]): GestureResult {
 }
 
 export interface GestureHistoryResult {
-  word: string;
+  word: string | null;
   progress: number;
   isUnlocked: boolean;
+  isCooldown?: boolean;
 }
 
 export class GestureHistory {
@@ -148,13 +149,13 @@ export class GestureHistory {
     this.lastLockedWord = word
     this.consecutiveFrames = this.requiredFrames
     this.cooldownFrames = 30 // ~2-3 seconds cooldown at 10-15fps
-    return { word: word, progress: 100, isUnlocked: true }
+    return { word: word, progress: 100, isUnlocked: true, isCooldown: true }
   }
 
   push(word: string): GestureHistoryResult {
     if (this.cooldownFrames > 0) {
       this.cooldownFrames--
-      return { word: this.lastLockedWord, progress: 100, isUnlocked: false }
+      return { word: this.lastLockedWord, progress: 100, isUnlocked: false, isCooldown: true }
     }
 
     if (!word || word === '—' || word === '...' || word.includes('Аяқтауда')) {

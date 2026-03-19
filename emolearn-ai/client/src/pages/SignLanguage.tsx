@@ -128,8 +128,6 @@ export default function SignLanguage() {
       // Gesture Recognition (Pass all hands to support Dual-Hand ML)
       const result = recognizeGesture(handLandmarks)
       if (result) {
-        setGestureResult(result)
-        
         let histResult;
         if (result.isMlMatch) {
           histResult = GESTURE_HISTORY.forceUnlock(result.wordKz)
@@ -137,12 +135,24 @@ export default function SignLanguage() {
           histResult = GESTURE_HISTORY.push(result.wordKz)
         }
 
+        if (histResult.isCooldown && histResult.word) {
+          setGestureResult({
+            word: histResult.word.toUpperCase(),
+            wordKz: histResult.word,
+            confidence: 1,
+            isMlMatch: true
+          })
+        } else {
+          setGestureResult(result)
+        }
+
         setHoldingProgress(histResult.progress)
         
         if (histResult.isUnlocked && histResult.word && histResult.word !== '...') {
+          const newWord = histResult.word
           setHistory(prev => {
-            if (prev[prev.length - 1] === histResult.word) return prev
-            return [...prev.slice(-9), histResult.word]
+            if (prev[prev.length - 1] === newWord) return prev
+            return [...prev.slice(-9), newWord]
           })
         }
       }

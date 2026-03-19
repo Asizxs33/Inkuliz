@@ -59,7 +59,7 @@ export function euclideanDistance(vecA: number[], vecB: number[]): number {
  */
 export function normalizeDualSequence(sequence: Landmark[][][]): number[][] {
   const result: number[][] = []
-  const VELOCITY_WEIGHT = 7.0 // Emphasize motion trajectory heavily
+  const VELOCITY_WEIGHT = 3.5 // Balanced motion and shape
 
   for (let i = 0; i < sequence.length; i++) {
     const shapeVec = normalizeDualHandLandmarks(sequence[i])
@@ -181,8 +181,8 @@ export class GestureML {
     }
 
     // Since vector is now 128 dimensions, the distance will naturally be higher.
-    // Euclidean distance in 128D space.
-    if (minDistance < 2.5) { // Adjusted threshold for 128-dim space
+    // Euclidean distance in 128D space. Reduced to make ML stricter.
+    if (minDistance < 1.6) { // Adjusted threshold for 128-dim space
       return {
         wordKz: bestMatch,
         distance: minDistance
