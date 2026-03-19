@@ -494,13 +494,13 @@ export default function GlobalBiometrics() {
             </button>
 
             {/* Hidden audio source via iframe autoplay to bypass some constraints, 
-                KAgp-vB8zwI is 'Ауырмайды жүрек', adding allow=autoplay */}
+                e4Cyet8who0 works better for embeds than official copyright videos */}
             <iframe 
                width="1" height="1" 
-               src="https://www.youtube.com/embed/KAgp-vB8zwI?autoplay=1&playsinline=1&start=40" 
+               src="https://www.youtube.com/embed/e4Cyet8who0?autoplay=1&playsinline=1&start=40" 
                title="Wake up alarm" 
                allow="autoplay; encrypted-media; fullscreen; picture-in-picture" 
-               className="absolute opacity-0 pointer-events-none"
+               className="absolute opacity-[0.01] pointer-events-none z-0"
             />
           </motion.div>
         )}
