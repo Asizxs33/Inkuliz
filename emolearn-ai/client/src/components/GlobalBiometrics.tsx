@@ -126,22 +126,16 @@ export default function GlobalBiometrics() {
     })
   }, [])
 
-  // Safari Autoplay Unlock: guarantees the alarm can play without NotAllowedError
-  // We use the capture phase ({ capture: true }) because React onClick events often stop propagation!
+  // Safari Autoplay Unlock: Continuous Silent Playback Hack
+  // Safari revokes async `play()` permissions if the audio is paused. 
+  // To avoid `NotAllowedError` permanently, we just KEEP the audio playing forever but completely silent!
   useEffect(() => {
     const unlockAudio = () => {
       if (audioRef.current && audioRef.current.paused) {
-        // Safari strictly requires volume > 0 to grant an active unlock! We use 1% volume.
-        // It also rejects the unlock if paused instantly. We wait 100ms.
-        audioRef.current.volume = 0.01
+        audioRef.current.volume = 0.0001 // practically zero
         const p = audioRef.current.play()
         if (p !== undefined) {
-          p.then(() => {
-            setTimeout(() => {
-              audioRef.current?.pause()
-              try { audioRef.current!.currentTime = 0 } catch(e) {}
-            }, 100)
-          }).catch(() => {})
+          p.catch(() => {})
         }
         
         document.removeEventListener('click', unlockAudio, { capture: true })
@@ -158,17 +152,19 @@ export default function GlobalBiometrics() {
     }
   }, [])
 
-  // Trigger alarm audio play/pause
+  // Trigger alarm visually by toggling VOLUME instead of play/pause
   useEffect(() => {
-    if (isSleeping && audioRef.current) {
-      audioRef.current.volume = 1
-      const playPromise = audioRef.current.play()
-      if (playPromise !== undefined) {
-        playPromise.catch(e => console.error('Audio play blocked:', e))
+    if (!audioRef.current) return
+    
+    if (isSleeping) {
+      if (audioRef.current.paused) {
+        // Edge case: if they completely bypassed the document click, try to play it
+        audioRef.current.play().catch(e => console.error('Audio play blocked:', e))
       }
-    } else if (!isSleeping && audioRef.current) {
-      audioRef.current.pause()
       try { audioRef.current.currentTime = 0 } catch(e) {}
+      audioRef.current.volume = 1
+    } else {
+      audioRef.current.volume = 0.0001 // go back to silent spinning
     }
   }, [isSleeping])
 
