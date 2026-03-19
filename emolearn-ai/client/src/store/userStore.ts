@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 interface UserState {
   id: string
@@ -14,22 +15,37 @@ interface UserState {
   logout: () => void
 }
 
-const savedToken = localStorage.getItem('emolearn_token')
-
-export const useUserStore = create<UserState>((set) => ({
-  id: '',
-  name: '',
-  email: '',
-  role: 'student',
-  avatar_url: null,
-  university: null,
-  course: null,
-  // Start logged out if no token, otherwise we should verify token but we'll trust it initially for UX
-  isLoggedIn: !!savedToken,
-  token: savedToken,
-  setUser: (user) => set((state) => ({ ...state, ...user })),
-  logout: () => {
-    localStorage.removeItem('emolearn_token')
-    set({ isLoggedIn: false, token: null, id: '', name: '', email: '', role: 'student' })
-  },
-}))
+export const useUserStore = create<UserState>()(
+  persist(
+    (set) => ({
+      id: '',
+      name: '',
+      email: '',
+      role: 'student',
+      avatar_url: null,
+      university: null,
+      course: null,
+      isLoggedIn: false,
+      token: null,
+      setUser: (user) => set((state) => ({ ...state, ...user })),
+      logout: () => {
+        localStorage.removeItem('emolearn_token')
+        set({ isLoggedIn: false, token: null, id: '', name: '', email: '', role: 'student' })
+      },
+    }),
+    {
+      name: 'emolearn-user-storage', // name of the item in the storage (must be unique)
+      partialize: (state) => ({ 
+        id: state.id, 
+        name: state.name, 
+        email: state.email, 
+        role: state.role, 
+        isLoggedIn: state.isLoggedIn, 
+        token: state.token,
+        avatar_url: state.avatar_url,
+        university: state.university,
+        course: state.course
+      }),
+    }
+  )
+)
