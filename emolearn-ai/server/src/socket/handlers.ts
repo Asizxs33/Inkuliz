@@ -9,6 +9,10 @@ const STRESS_EMOTIONS_KZ = new Set(['АШУЛЫ', 'ҚОРЫҚҚАН', 'ЖИІР�
 // In-memory cache to avoid DB lookup on every biometric tick
 const userNameCache = new Map<string, string>()
 
+// Cooldown: send Telegram alert at most once per 5 minutes per student
+const lastAlertTime = new Map<string, number>()
+const ALERT_COOLDOWN_MS = 5 * 60 * 1000
+
 async function getStudentName(userId: string): Promise<string> {
   if (userNameCache.has(userId)) return userNameCache.get(userId)!
   try {
@@ -53,21 +57,28 @@ export function setupSocket(io: Server) {
         // Check stress threshold (Kazakh emotion names only, consistent with client)
         const isStress = data.bpm > 90 || STRESS_EMOTIONS_KZ.has(data.emotionKz)
         if (isStress) {
+          // Always save to DB for analytics
           await db.insert(alerts).values({
             student_id: data.userId,
             type: 'stress',
             message: `Пульс: ${data.bpm}, Эмоция: ${data.emotionKz || data.emotion}`,
           })
 
-          const studentName = await getStudentName(data.userId)
-          await sendStressAlert({
-            studentName,
-            bpm: data.bpm,
-            emotion: data.emotionKz || data.emotion,
-            className: '',
-          })
-
           io.to('teachers').emit('alert:critical', data)
+
+          // Telegram: send at most once per 5 minutes per student
+          const now = Date.now()
+          const last = lastAlertTime.get(data.userId) ?? 0
+          if (now - last >= ALERT_COOLDOWN_MS) {
+            lastAlertTime.set(data.userId, now)
+            const studentName = await getStudentName(data.userId)
+            await sendStressAlert({
+              studentName,
+              bpm: data.bpm,
+              emotion: data.emotionKz || data.emotion,
+              className: '',
+            })
+          }
         }
 
         // Update teacher dashboard live

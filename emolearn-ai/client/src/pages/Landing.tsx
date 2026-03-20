@@ -74,7 +74,7 @@ export default function Landing() {
 
   const tabs = [
     { label: 'Оқушыларға', icon: BookOpen, points: ['Нақты уақытта ымдауды үйрену', 'AI репетитор сіздің эмоцияңызды сезеді', 'Жүрек соғуы мен зейін өлшенеді', '200+ сөздік және тесттер'] },
-    { label: 'Мұғалімдерге', icon: Eye,     points: ['Бүкіл сыныпты нақты уақытта бақылау', 'Стресс/ұйқы алертын Telegram-ға алу', 'Онлайн тесттер жасау және нәтиже көру', 'Сынып аналитикасы мен эмоция картасы'] },
+    { label: 'Мұғалімдерге', icon: Eye, points: ['Бүкіл сыныпты нақты уақытта бақылау', 'Стресс/ұйқы алертын Telegram-ға алу', 'Онлайн тесттер жасау және нәтиже көру', 'Сынып аналитикасы мен эмоция картасы'] },
   ]
 
   return (
@@ -274,8 +274,8 @@ export default function Landing() {
           {[
             { value: 200, suffix: '+', label: 'Ымдау сөздер' },
             { value: 100, suffix: '%', label: 'Браузерде ML' },
-            { value: 4,   suffix: 'о',  label: 'GPT-4o негіз' },
-            { value: 0,   suffix: '₸',  label: 'Тегін тіркелу' },
+            { value: 4, suffix: 'о', label: 'GPT-4o негіз' },
+            { value: 0, suffix: '₸', label: 'Тегін тіркелу' },
           ].map((s, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
               <p className="text-4xl font-black"><Counter to={s.value} suffix={s.suffix} /></p>
@@ -294,15 +294,15 @@ export default function Landing() {
 
         {/* Bento grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <BentoCard big delay={0}    icon={Hand}         gradient="from-[#6B2D5E] to-[#E8507A]"       title="Ымдау тілін тану"    desc="MediaPipe Hands 21 нүктесі арқылы нақты уақытта қимылдарды анықтайды. 15 кадрлық тегістеу — жоғары дәлдік." className="lg:col-span-2" />
-          <BentoCard      delay={0.05} icon={Heart}        gradient="from-[#E8507A] to-amber-500"        title="rPPG пульс"          desc="Веб-камера арқылы жүрек соғуын физикалық датчиксіз өлшейді." />
-          <BentoCard      delay={0.1}  icon={Brain}        gradient="from-[#6B2D5E] to-indigo-500]"      title="AI Репетитор"        desc="GPT-4o эмоцияңызды ескеріп, жауап береді." />
-          <BentoCard big delay={0.15} icon={BarChart3}    gradient="from-indigo-500 to-[#6B2D5E]"       title="Нақты уақыт аналитика" desc="Пульс, зейін және эмоция хронологиясы. 28 күндік белсенділік картасы. Мұғалімге тікелей стрим." className="lg:col-span-2" />
-          <BentoCard      delay={0.2}  icon={Sparkles}    gradient="from-amber-500 to-[#E8507A]"        title="Бейімделу"           desc="Стресс анықталса жеңілдетеді, сабырлы кезде қиындатады." />
-          <BentoCard      delay={0.25} icon={Film}         gradient="from-[#E8507A] to-[#6B2D5E]"       title="Бейне аудару"        desc="Ымдау тілі бейнесін мәтінге аударады." />
-          <BentoCard      delay={0.3}  icon={MessageSquare}gradient="from-[#6B2D5E] to-rose-400"        title="Тікелей сұхбат"     desc="Мұғалім мен сынып арасында нақты уақыт чат + WebRTC." />
-          <BentoCard      delay={0.35} icon={FileText}     gradient="from-rose-400 to-amber-500"         title="Онлайн тесттер"     desc="Мұғалім тест жасайды, студент нәтижесін бірден көреді." />
-          <BentoCard      delay={0.4}  icon={BookOpen}     gradient="from-amber-500 to-[#6B2D5E]"        title="Сөздік"             desc="200+ сөз, суреттер, санаттар, таңдаулылар." />
+          <BentoCard big delay={0} icon={Hand} gradient="from-[#6B2D5E] to-[#E8507A]" title="Ымдау тілін тану" desc="MediaPipe Hands 21 нүктесі арқылы нақты уақытта қимылдарды анықтайды. 15 кадрлық тегістеу — жоғары дәлдік." className="lg:col-span-2" />
+          <BentoCard delay={0.05} icon={Heart} gradient="from-[#E8507A] to-amber-500" title="rPPG пульс" desc="Веб-камера арқылы жүрек соғуын физикалық датчиксіз өлшейді." />
+          <BentoCard delay={0.1} icon={Brain} gradient="from-[#6B2D5E] to-indigo-500]" title="AI Репетитор" desc="GPT-4o эмоцияңызды ескеріп, жауап береді." />
+          <BentoCard big delay={0.15} icon={BarChart3} gradient="from-indigo-500 to-[#6B2D5E]" title="Нақты уақыт аналитика" desc="Пульс, зейін және эмоция хронологиясы. 28 күндік белсенділік картасы. Мұғалімге тікелей стрим." className="lg:col-span-2" />
+          <BentoCard delay={0.2} icon={Sparkles} gradient="from-amber-500 to-[#E8507A]" title="Бейімделу" desc="Стресс анықталса жеңілдетеді, сабырлы кезде қиындатады." />
+          <BentoCard delay={0.25} icon={Film} gradient="from-[#E8507A] to-[#6B2D5E]" title="Бейне аудару" desc="Ымдау тілі бейнесін мәтінге аударады." />
+          <BentoCard delay={0.3} icon={MessageSquare} gradient="from-[#6B2D5E] to-rose-400" title="Тікелей сұхбат" desc="Мұғалім мен сынып арасында нақты уақыт чат + WebRTC." />
+          <BentoCard delay={0.35} icon={FileText} gradient="from-rose-400 to-amber-500" title="Онлайн тесттер" desc="Мұғалім тест жасайды, студент нәтижесін бірден көреді." />
+          <BentoCard delay={0.4} icon={BookOpen} gradient="from-amber-500 to-[#6B2D5E]" title="Сөздік" desc="200+ сөз, суреттер, санаттар, таңдаулылар." />
         </div>
       </section>
 
@@ -368,9 +368,9 @@ export default function Landing() {
           <div className="hidden md:block absolute top-10 left-[22%] right-[22%] h-0.5 bg-gradient-to-r from-[#6B2D5E] to-[#E8507A] opacity-20" />
 
           {[
-            { n: '01', icon: '📝', title: 'Тіркеліңіз',       desc: 'Оқушы немесе мұғалім ретінде 1 минутта тіркеліңіз. Ешқандай карта қажет емес.' },
+            { n: '01', icon: '📝', title: 'Тіркеліңіз', desc: 'Оқушы немесе мұғалім ретінде 1 минутта тіркеліңіз. Ешқандай карта қажет емес.' },
             { n: '02', icon: '📷', title: 'Камераны қосыңыз', desc: 'Биометрика мен ымдау тілін тану веб-камера арқылы — деректер тек браузерде.' },
-            { n: '03', icon: '🚀', title: 'Үйреніп өсіңіз',  desc: 'AI бейімдеу мен нақты уақыт аналитикасымен тез прогресс жасаңыз.' },
+            { n: '03', icon: '🚀', title: 'Үйреніп өсіңіз', desc: 'AI бейімдеу мен нақты уақыт аналитикасымен тез прогресс жасаңыз.' },
           ].map((item, i) => (
             <motion.div
               key={item.n}
@@ -438,7 +438,7 @@ export default function Landing() {
             </div>
             <span className="font-black text-[#6B2D5E]">FeelFlow</span>
           </div>
-          <p className="text-xs text-[#9C8A98]">© 2025 FeelFlow. Барлық құқықтар қорғалған. 🇰🇿</p>
+          <p className="text-xs text-[#9C8A98]">© 2026 FeelFlow. Барлық құқықтар қорғалған. 🇰🇿</p>
           <div className="flex gap-4 text-xs text-[#9C8A98] font-bold">
             <button onClick={() => navigate('/login')} className="hover:text-[#6B2D5E] transition-colors">Кіру</button>
             <button onClick={() => navigate('/register')} className="hover:text-[#6B2D5E] transition-colors">Тіркелу</button>

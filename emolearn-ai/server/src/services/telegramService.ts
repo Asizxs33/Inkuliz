@@ -15,12 +15,20 @@ export function initTelegramBot() {
 
 export async function sendTelegramAlert(message: string) {
   const chatId = process.env.TELEGRAM_CHAT_ID
-  if (!bot || !chatId) return
+  if (!bot) {
+    console.warn('⚠️ Telegram bot not initialized — check TELEGRAM_BOT_TOKEN in .env')
+    return
+  }
+  if (!chatId) {
+    console.warn('⚠️ TELEGRAM_CHAT_ID not set in .env')
+    return
+  }
 
   try {
     await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' })
-  } catch (error) {
-    console.error('Telegram send error:', error)
+    console.log('✅ Telegram alert sent')
+  } catch (error: any) {
+    console.error('❌ Telegram send error:', error?.message || error)
   }
 }
 

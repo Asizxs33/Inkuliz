@@ -174,7 +174,7 @@ export default function Analytics() {
           <BarChart3 size={28} className="text-rose" /> НАҚТЫ УАҚЫТ АНАЛИТИКАСЫ
         </h1>
         <p className="text-text-secondary mt-1">
-          {isCameraEnabled 
+          {isCameraEnabled
             ? `${name || 'Оқушы'}, сіздің биометрлік деректеріңіз тікелей қадағаланып жатыр`
             : 'Камераны қосыңыз — нақты деректер автоматты түрде жиналады'}
         </p>
@@ -182,7 +182,7 @@ export default function Analytics() {
 
       {/* Live Status Banner */}
       {isCameraEnabled && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-3 p-3 rounded-xl bg-success/10 border border-success/20"
         >
@@ -298,7 +298,7 @@ export default function Analytics() {
             </>
           ) : (
             <div className="h-40 flex items-center justify-center text-text-muted text-sm text-center">
-              Эмоция деректері<br/>жиналуда...
+              Эмоция деректері<br />жиналуда...
             </div>
           )}
         </motion.div>
@@ -315,7 +315,7 @@ export default function Analytics() {
         >
           <h3 className="font-bold text-text-primary mb-4">Белсенділік картасы (28 күн)</h3>
           <div className="grid grid-cols-7 gap-1 mb-3">
-            {['ДУ','СЕ','СӘ','БЕ','ЖУ','СЕ','ЖЕ'].map(d => (
+            {['ДУ', 'СЕ', 'СӘ', 'БЕ', 'ЖУ', 'СЕ', 'ЖЕ'].map(d => (
               <span key={d} className="text-center text-xs text-text-muted">{d}</span>
             ))}
             {heatmapData.map((v, i) => (
@@ -330,7 +330,7 @@ export default function Analytics() {
           <div className="flex justify-between text-xs text-text-muted mt-2">
             <span>БЕЛСЕНДІ ЕМЕС</span>
             <div className="flex gap-1">
-              {[0,3,8,15,25].map(v => (
+              {[0, 3, 8, 15, 25].map(v => (
                 <div key={v} className="w-4 h-3 rounded-sm" style={{ backgroundColor: getHeatColor(v) }} />
               ))}
             </div>
@@ -374,7 +374,7 @@ export default function Analytics() {
                 </p>
               </div>
             </div>
-            
+
             {/* ML Model Insight */}
             <div className="flex items-center gap-3 p-3 bg-bg-secondary rounded-xl">
               <Lightbulb size={16} className="text-warning shrink-0" />
@@ -394,7 +394,7 @@ export default function Analytics() {
               <div>
                 <p className="text-sm font-bold text-text-primary">Оқу прогресі</p>
                 <p className="text-xs text-text-muted">
-                  {bookmarkCount > 0 
+                  {bookmarkCount > 0
                     ? `${bookmarkCount} сөз таңдаулыларға қосылған. Сөздікте белгіленген сөздеріңізді қайталаңыз!`
                     : 'Сөздіктен сөздерді таңдаулыларға қосып, оларды жаттығыңыз!'}
                 </p>
@@ -406,7 +406,7 @@ export default function Analytics() {
 
       {/* Footer */}
       <div className="flex items-center justify-between text-xs text-text-muted py-4 border-t border-border-soft">
-        <span>© 2025 FEELFLOW ANALYTICS. НАҚТЫ ДЕРЕКТЕР НЕГІЗІНДЕ.</span>
+        <span>© 2026 FEELFLOW ANALYTICS. НАҚТЫ ДЕРЕКТЕР НЕГІЗІНДЕ.</span>
         <span>{timeline.length} деректер нүктесі жиналды</span>
       </div>
     </div>
