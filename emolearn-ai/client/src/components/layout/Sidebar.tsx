@@ -1,9 +1,11 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Hand, BarChart3, BookOpen, User, GraduationCap, LogOut, MessageSquare, Sparkles, Film, FileText
 } from 'lucide-react'
 import { useUserStore } from '../../store/userStore'
+import { onTestNotification } from '../../lib/socket'
+import { useState, useEffect } from 'react'
 
 const studentItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Басты бет' },
@@ -28,7 +30,22 @@ const teacherItems = [
 export function Sidebar() {
   const { role, logout } = useUserStore()
   const navigate = useNavigate()
+  const location = useLocation()
   const navItems = role === 'teacher' ? teacherItems : studentItems
+  const [testBadge, setTestBadge] = useState(0)
+
+  useEffect(() => {
+    if (role !== 'student') return
+    const cleanup = onTestNotification(() => {
+      setTestBadge(n => n + 1)
+    })
+    return cleanup
+  }, [role])
+
+  // Clear badge when user navigates to /tests
+  useEffect(() => {
+    if (location.pathname === '/tests') setTestBadge(0)
+  }, [location.pathname])
 
   return (
     <aside className="sidebar w-[72px] hover:w-[220px] transition-all duration-300 flex flex-col items-center py-6 group overflow-hidden shrink-0 z-50">
@@ -58,10 +75,17 @@ export function Sidebar() {
           >
             {({ isActive }) => (
               <>
-                <item.icon
-                  size={22}
-                  className={`shrink-0 ${isActive ? 'text-plum' : 'text-text-muted'}`}
-                />
+                <div className="relative shrink-0">
+                  <item.icon
+                    size={22}
+                    className={isActive ? 'text-plum' : 'text-text-muted'}
+                  />
+                  {item.to === '/tests' && testBadge > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                      {testBadge}
+                    </span>
+                  )}
+                </div>
                 <span className="whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm">
                   {item.label}
                 </span>

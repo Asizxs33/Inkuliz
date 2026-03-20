@@ -41,6 +41,24 @@ authRouter.post('/register', async (req, res) => {
   }
 })
 
+// PATCH /api/auth/profile
+authRouter.patch('/profile', async (req, res) => {
+  try {
+    const { id, name, university, course } = req.body
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    const [updated] = await db
+      .update(users)
+      .set({ name, university, course: course ? Number(course) : undefined })
+      .where(eq(users.id, id))
+      .returning()
+    const { password: _, ...safe } = updated
+    res.json({ user: safe })
+  } catch (error) {
+    console.error('Profile update error:', error)
+    res.status(500).json({ error: 'Failed to update profile' })
+  }
+})
+
 // POST /api/auth/login
 authRouter.post('/login', async (req, res) => {
   try {

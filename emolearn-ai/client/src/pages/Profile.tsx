@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion'
-import { Shield, Globe, Bell, CheckCircle, Lock, Camera, ChevronRight, Award, Zap, BookOpen, User, Calendar, Trophy, BarChart2, Target, Heart, Brain, Hand, Sparkles, GraduationCap, Mail, Building, LogOut } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Shield, Globe, Bell, CheckCircle, Lock, Camera, ChevronRight, Zap, BookOpen, User, Calendar, Trophy, BarChart2, Heart, Brain, Hand, Sparkles, GraduationCap, Mail, Building, LogOut, Pencil, X, Check } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -59,11 +59,26 @@ function getBioHistory() {
 }
 
 export default function Profile() {
-  const { name, email, university, course, role, logout } = useUserStore()
-  const { isCameraEnabled, bpm, emotion, cognitive, confidence } = useBiometricStore()
+  const { name, email, university, course, role, logout, updateProfile } = useUserStore()
+  const { isCameraEnabled, bpm, cognitive } = useBiometricStore()
   const navigate = useNavigate()
-  
+
   const [notifEnabled, setNotifEnabled] = useState(true)
+  const [editing, setEditing] = useState(false)
+  const [editName, setEditName] = useState(name || '')
+  const [editUniversity, setEditUniversity] = useState(university || '')
+  const [editCourse, setEditCourse] = useState(course?.toString() || '')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  const handleSave = async () => {
+    setSaving(true)
+    await updateProfile({ name: editName, university: editUniversity, course: editCourse ? Number(editCourse) : null })
+    setSaving(false)
+    setSaved(true)
+    setEditing(false)
+    setTimeout(() => setSaved(false), 2000)
+  }
   
   const bookmarkCount = getBookmarkCount()
   const totalWords = DICTIONARY_DATA.length
@@ -171,33 +186,64 @@ export default function Profile() {
         <div className="flex flex-col gap-5">
           {/* Student Card */}
           <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="card flex flex-col sm:flex-row items-center gap-6">
-            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-plum-pale to-soft-pink flex items-center justify-center shrink-0">
-              <User size={48} className="text-plum" />
+            {/* Avatar */}
+            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-plum to-rose flex items-center justify-center shrink-0">
+              <span className="text-white font-black text-3xl">{(name || 'S')[0].toUpperCase()}</span>
             </div>
-            <div className="flex-1 text-center sm:text-left">
-              <h1 className="text-2xl sm:text-3xl font-black text-text-primary">{name || 'Студент'}</h1>
-              <div className="flex flex-col sm:flex-row gap-1 sm:gap-4 mt-1">
-                {email && <p className="text-sm text-text-muted flex items-center gap-1 justify-center sm:justify-start"><Mail size={14} /> {email}</p>}
-                {university && <p className="text-sm text-text-muted flex items-center gap-1 justify-center sm:justify-start"><Building size={14} /> {university}</p>}
-                {course && <p className="text-sm text-text-muted flex items-center gap-1 justify-center sm:justify-start"><GraduationCap size={14} /> {course}-курс</p>}
-              </div>
-              <div className="flex gap-6 mt-4 justify-center sm:justify-start">
-                <div>
-                  <p className="text-xs text-rose font-bold uppercase">Сақталған</p>
-                  <p className="text-2xl font-black text-text-primary">{bookmarkCount}</p>
+
+            <div className="flex-1 min-w-0">
+              <AnimatePresence mode="wait">
+                {editing ? (
+                  <motion.div key="edit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-2">
+                    <input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Аты-жөні"
+                      className="w-full px-3 py-2 rounded-xl border border-border-soft focus:outline-none focus:border-plum font-bold text-lg" />
+                    <input value={editUniversity} onChange={e => setEditUniversity(e.target.value)} placeholder="Университет"
+                      className="w-full px-3 py-2 rounded-xl border border-border-soft focus:outline-none focus:border-plum text-sm" />
+                    <input value={editCourse} onChange={e => setEditCourse(e.target.value)} placeholder="Курс (мысалы: 2)" type="number" min="1" max="6"
+                      className="w-full px-3 py-2 rounded-xl border border-border-soft focus:outline-none focus:border-plum text-sm" />
+                    <div className="flex gap-2 mt-1">
+                      <button onClick={handleSave} disabled={saving}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-plum text-white rounded-xl text-sm font-bold hover:bg-plum/90 disabled:opacity-50">
+                        {saving ? <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Check size={14} />}
+                        Сақтау
+                      </button>
+                      <button onClick={() => setEditing(false)} className="flex items-center gap-1.5 px-4 py-2 border border-border-soft rounded-xl text-sm font-bold text-text-muted hover:text-danger">
+                        <X size={14} /> Болдырмау
+                      </button>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <h1 className="text-2xl sm:text-3xl font-black text-text-primary">{name || 'Студент'}</h1>
+                      {saved && <span className="text-xs font-bold text-success bg-success/10 px-2 py-0.5 rounded-full">✓ Сақталды</span>}
+                      <button onClick={() => { setEditName(name || ''); setEditUniversity(university || ''); setEditCourse(course?.toString() || ''); setEditing(true) }}
+                        className="p-1.5 rounded-lg hover:bg-plum-pale text-text-muted hover:text-plum transition-colors">
+                        <Pencil size={15} />
+                      </button>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-1 sm:gap-4 mt-1">
+                      {email && <p className="text-sm text-text-muted flex items-center gap-1"><Mail size={14} /> {email}</p>}
+                      {university && <p className="text-sm text-text-muted flex items-center gap-1"><Building size={14} /> {university}</p>}
+                      {course && <p className="text-sm text-text-muted flex items-center gap-1"><GraduationCap size={14} /> {course}-курс</p>}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {!editing && (
+                <div className="flex gap-6 mt-4">
+                  <div><p className="text-xs text-rose font-bold uppercase">Сақталған</p><p className="text-2xl font-black text-text-primary">{bookmarkCount}</p></div>
+                  <div><p className="text-xs text-text-muted font-bold uppercase">Прогресс</p><p className="text-2xl font-black text-text-primary">{progress}%</p></div>
+                  <div><p className="text-xs text-plum font-bold uppercase">Серия</p><p className="text-2xl font-black text-text-primary">{streak} 🔥</p></div>
                 </div>
-                <div>
-                  <p className="text-xs text-text-muted font-bold uppercase">Прогресс</p>
-                  <p className="text-2xl font-black text-text-primary">{progress}%</p>
-                </div>
-                <div>
-                  <p className="text-xs text-plum font-bold uppercase">Серия</p>
-                  <p className="text-2xl font-black text-text-primary">{streak} 🔥</p>
-                </div>
-              </div>
+              )}
             </div>
-            <div className="text-center sm:text-right">
-              <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full ${role === 'teacher' ? 'bg-amber-100 text-amber-700' : 'bg-plum-pale text-plum'}`}>{role === 'teacher' ? 'Мұғалім' : 'Студент'}</span>
+
+            <div className="text-center sm:text-right shrink-0">
+              <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full ${role === 'teacher' ? 'bg-amber-100 text-amber-700' : 'bg-plum-pale text-plum'}`}>
+                {role === 'teacher' ? 'Мұғалім' : 'Студент'}
+              </span>
               <div className="mt-3">
                 <div className="w-32 h-2 bg-plum-pale rounded-full">
                   <div className="h-full bg-gradient-to-r from-plum to-rose rounded-full" style={{ width: `${progress}%` }} />

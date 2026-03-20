@@ -1,7 +1,8 @@
 import { Router } from 'express'
 import { db } from '../db/index.js'
-import { tests, testResults, users } from '../db/schema.js'
+import { tests, testResults } from '../db/schema.js'
 import { eq, and } from 'drizzle-orm'
+import { getIo } from '../io.js'
 
 export const testsRouter = Router()
 
@@ -60,6 +61,7 @@ testsRouter.post('/', async (req, res) => {
       .values({ teacher_id, title, questions, status: 'open' })
       .returning()
 
+    getIo()?.emit('test:new', { id: newTest.id, title: newTest.title })
     res.json({ test: newTest })
   } catch (error) {
     console.error('Create test error:', error)
@@ -79,6 +81,9 @@ testsRouter.patch('/:id/status', async (req, res) => {
       .set({ status })
       .where(eq(tests.id, req.params.id))
       .returning()
+    if (status === 'open') {
+      getIo()?.emit('test:new', { id: updated.id, title: updated.title })
+    }
     res.json({ test: updated })
   } catch (error) {
     console.error('Update test status error:', error)

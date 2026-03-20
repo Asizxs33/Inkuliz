@@ -13,6 +13,7 @@ import { telegramRouter } from './routes/telegram.js'
 import { classesRouter } from './routes/classes.js'
 import { testsRouter } from './routes/tests.js'
 import { setupSocket } from './socket/handlers.js'
+import { setIo } from './io.js'
 import { initTelegramBot } from './services/telegramService.js'
 
 // Initialize services
@@ -52,6 +53,7 @@ app.get('/api/health', (_req, res) => {
 })
 
 // Socket.IO
+setIo(io)
 setupSocket(io)
 
 // Start server on all environments since Render needs it

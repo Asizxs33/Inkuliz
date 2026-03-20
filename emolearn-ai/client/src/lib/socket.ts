@@ -98,6 +98,13 @@ export function onNotification(callback: (data: any) => void) {
   return () => { socket.off('notification:receive', callback) }
 }
 
+// Test notifications
+export function onTestNotification(callback: (data: { id: string; title: string }) => void) {
+  const socket = getSocket()
+  socket.on('test:new', callback)
+  return () => { socket.off('test:new', callback) }
+}
+
 // WebRTC Signaling
 export function emitWebRTCOffer(offer: RTCSessionDescriptionInit) {
   getSocket().emit('webrtc:offer', { offer })

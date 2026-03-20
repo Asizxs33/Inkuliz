@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FileText, CheckCircle2, XCircle, Clock, Trophy, ChevronRight, RotateCcw } from 'lucide-react'
+import { FileText, CheckCircle2, XCircle, Clock, Trophy, ChevronRight, RotateCcw, Medal } from 'lucide-react'
 import { useUserStore } from '../store/userStore'
 
 const API = (path: string) => (import.meta.env.VITE_API_URL || '') + path
@@ -23,6 +23,7 @@ export default function Tests() {
   const [current, setCurrent] = useState(0)
   const [result, setResult] = useState<{ score: number; total: number; answers: number[] } | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [leaderboard, setLeaderboard] = useState<{ student_name: string; score: number; total: number }[]>([])
 
   const fetchTests = async () => {
     try {
@@ -91,6 +92,14 @@ export default function Tests() {
       const r = { score: data.score, total: data.total, answers }
       setResult(r)
       setMyResults(prev => ({ ...prev, [activeTest.id]: { ...r, completed_at: new Date().toISOString() } }))
+
+      // Fetch leaderboard
+      const lbRes = await fetch(API(`/api/tests/${activeTest.id}/results`))
+      const lbData = await lbRes.json()
+      const sorted = (lbData.results || [])
+        .sort((a: any, b: any) => b.score / b.total - a.score / a.total)
+      setLeaderboard(sorted)
+
       setScreen('result')
     } catch (err) {
       console.error('Submit error:', err)
@@ -196,6 +205,33 @@ export default function Tests() {
             )
           })}
         </div>
+
+        {/* Leaderboard */}
+        {leaderboard.length > 0 && (
+          <div className="card">
+            <p className="text-xs font-bold text-text-muted uppercase tracking-widest mb-4 flex items-center gap-2">
+              <Medal size={14} className="text-amber-500" /> Рейтинг
+            </p>
+            <div className="flex flex-col gap-2">
+              {leaderboard.map((row, i) => {
+                const isMe = row.student_name === studentName
+                const pct = Math.round((row.score / row.total) * 100)
+                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`
+                return (
+                  <div key={i} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl ${isMe ? 'bg-plum/10 border-2 border-plum/30' : 'bg-bg-secondary'}`}>
+                    <span className="text-lg w-7 shrink-0">{medal}</span>
+                    <span className={`flex-1 text-sm font-bold ${isMe ? 'text-plum' : 'text-text-primary'}`}>
+                      {row.student_name} {isMe && '(сіз)'}
+                    </span>
+                    <span className={`text-sm font-bold ${pct >= 70 ? 'text-success' : 'text-danger'}`}>
+                      {row.score}/{row.total} · {pct}%
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         <button onClick={() => setScreen('list')} className="btn-primary py-3 font-bold text-sm">
           Тесттер тізіміне оралу

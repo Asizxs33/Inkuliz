@@ -16,6 +16,7 @@ import LiveChat from './pages/LiveChat'
 import VideoTranslate from './pages/VideoTranslate'
 import Tests from './pages/Tests'
 import GlobalBiometrics from './components/GlobalBiometrics'
+import NotificationToast from './components/NotificationToast'
 import { useUserStore } from './store/userStore'
 
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -49,6 +50,7 @@ function RoleRedirect() {
 export default function App() {
   return (
     <BrowserRouter>
+      <NotificationToast />
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
