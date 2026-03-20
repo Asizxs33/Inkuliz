@@ -1,11 +1,34 @@
 import { Server } from 'socket.io'
 import { db } from '../db/index.js'
-import { emotionLogs, alerts } from '../db/schema.js'
+import { emotionLogs, alerts, users } from '../db/schema.js'
+import { eq } from 'drizzle-orm'
 import { sendStressAlert } from '../services/telegramService.js'
+
+const STRESS_EMOTIONS_KZ = new Set(['АШУЛЫ', 'ҚОРЫҚҚАН', 'ЖИІРКЕНГЕН'])
+
+// In-memory cache to avoid DB lookup on every biometric tick
+const userNameCache = new Map<string, string>()
+
+async function getStudentName(userId: string): Promise<string> {
+  if (userNameCache.has(userId)) return userNameCache.get(userId)!
+  try {
+    const [user] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId))
+    const name = user?.name ?? 'Белгісіз студент'
+    userNameCache.set(userId, name)
+    return name
+  } catch {
+    return 'Белгісіз студент'
+  }
+}
 
 export function setupSocket(io: Server) {
   io.on('connection', (socket) => {
     console.log(`🔌 Client connected: ${socket.id}`)
+
+    // Register user to their personal room so targeted notifications work
+    socket.on('user:register', (userId: string) => {
+      if (userId) socket.join(`user:${userId}`)
+    })
 
     // Student sends real biometric data
     socket.on('biometric:update', async (data: {
@@ -20,36 +43,30 @@ export function setupSocket(io: Server) {
         // Save to Neon DB via Drizzle
         await db.insert(emotionLogs).values({
           user_id: data.userId,
-          emotion: data.emotion,
+          emotion: data.emotionKz || data.emotion,
           confidence: data.confidence,
           bpm: data.bpm,
           cognitive: data.cognitive,
           timestamp: new Date()
         })
 
-        // Check stress threshold
-        if (data.bpm > 90 ||
-            data.emotion === 'ҚОРЫҚҚАН' ||
-            data.emotion === 'АШУЛЫ' ||
-            data.emotion === 'fearful' ||
-            data.emotion === 'angry') {
-
-          // Save alert to DB
+        // Check stress threshold (Kazakh emotion names only, consistent with client)
+        const isStress = data.bpm > 90 || STRESS_EMOTIONS_KZ.has(data.emotionKz)
+        if (isStress) {
           await db.insert(alerts).values({
             student_id: data.userId,
             type: 'stress',
             message: `Пульс: ${data.bpm}, Эмоция: ${data.emotionKz || data.emotion}`,
           })
 
-          // Send Telegram alert
+          const studentName = await getStudentName(data.userId)
           await sendStressAlert({
-            studentName: 'Асрор Р.',
+            studentName,
             bpm: data.bpm,
             emotion: data.emotionKz || data.emotion,
-            className: '10-А',
+            className: '',
           })
 
-          // Notify teacher UI
           io.to('teachers').emit('alert:critical', data)
         }
 
@@ -114,9 +131,11 @@ export function setupSocket(io: Server) {
       })
     })
 
-    // In-app notification system
+    // In-app notification system — send only to target user's personal room
     socket.on('notification:send', (data: { targetUserId: string, type: string, message: string, from: string }) => {
-      io.emit('notification:receive', data) // Broadcast — client filters by targetUserId
+      if (data.targetUserId) {
+        io.to(`user:${data.targetUserId}`).emit('notification:receive', data)
+      }
     })
 
     // WebRTC Signaling Events

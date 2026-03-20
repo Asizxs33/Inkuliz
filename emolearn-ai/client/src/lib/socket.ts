@@ -14,6 +14,10 @@ export function getSocket(): Socket {
   return socket
 }
 
+export function registerUser(userId: string) {
+  getSocket().emit('user:register', userId)
+}
+
 export function emitBiometricUpdate(data: {
   userId: string
   emotion: string

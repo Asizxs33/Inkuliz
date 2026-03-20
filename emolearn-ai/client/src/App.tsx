@@ -17,10 +17,16 @@ import VideoTranslate from './pages/VideoTranslate'
 import Tests from './pages/Tests'
 import GlobalBiometrics from './components/GlobalBiometrics'
 import NotificationToast from './components/NotificationToast'
+import { useEffect } from 'react'
 import { useUserStore } from './store/userStore'
+import { registerUser } from './lib/socket'
 
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  const { isLoggedIn, role } = useUserStore()
+  const { isLoggedIn, role, id } = useUserStore()
+
+  useEffect(() => {
+    if (isLoggedIn && id) registerUser(id)
+  }, [isLoggedIn, id])
 
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />
@@ -33,7 +39,7 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <Navbar />
-          <main className="flex-1 p-6 overflow-auto">
+          <main className="flex-1 p-3 md:p-6 overflow-auto pb-20 md:pb-6">
             {children}
           </main>
         </div>

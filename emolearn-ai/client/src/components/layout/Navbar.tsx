@@ -125,20 +125,20 @@ export function Navbar() {
   }
 
   return (
-    <header className="h-16 bg-white border-b border-border-soft flex items-center justify-between px-6 shrink-0 z-50">
-      <div className="flex items-center gap-6">
-        <h2 className="text-text-primary font-bold text-lg">EmoLearn AI</h2>
+    <header className="h-14 md:h-16 bg-white border-b border-border-soft flex items-center justify-between px-3 md:px-6 shrink-0 z-50">
+      <div className="flex items-center gap-3">
+        <h2 className="text-text-primary font-bold text-base md:text-lg">EmoLearn AI</h2>
       </div>
-      <div className="flex items-center gap-4">
-        
+      <div className="flex items-center gap-2 md:gap-4">
+
         {/* Notifications */}
         <div className="relative" ref={dropdownRef}>
-          <button 
+          <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className="w-9 h-9 rounded-xl bg-plum-pale flex items-center justify-center hover:bg-soft-pink transition-colors relative group"
+            className="w-10 h-10 rounded-xl bg-plum-pale flex items-center justify-center hover:bg-soft-pink transition-colors relative"
             title="Хабарландырулар"
           >
-            <Bell size={18} className="text-plum group-hover:scale-110 transition-transform" />
+            <Bell size={18} className="text-plum" />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -153,7 +153,7 @@ export function Navbar() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-border-soft overflow-hidden"
+                className="absolute right-0 top-full mt-2 w-[min(320px,calc(100vw-1.5rem))] bg-white rounded-2xl shadow-2xl border border-border-soft overflow-hidden"
               >
                 <div className="p-4 border-b border-border-soft flex justify-between items-center bg-gray-50/50">
                   <h3 className="font-bold text-text-primary flex items-center gap-2">
@@ -242,17 +242,18 @@ export function Navbar() {
           </AnimatePresence>
         </div>
 
-        {/* Settings */}
-        <button 
+        {/* Settings — hidden on mobile (accessible via Profile in bottom nav) */}
+        <button
           onClick={() => navigate('/profile')}
-          className="w-9 h-9 rounded-xl bg-plum-pale flex items-center justify-center hover:bg-soft-pink transition-colors group"
+          className="hidden md:flex w-10 h-10 rounded-xl bg-plum-pale items-center justify-center hover:bg-soft-pink transition-colors group"
           title="Баптаулар (Профиль)"
         >
           <Settings size={18} className="text-plum group-hover:rotate-45 transition-transform duration-300" />
         </button>
 
-        <div className="flex items-center gap-3 ml-2">
-          <div className="text-right">
+        <div className="flex items-center gap-2 md:gap-3">
+          {/* Name + status — hidden on mobile */}
+          <div className="hidden sm:block text-right">
             <p className="text-sm font-bold text-text-primary">{displayName}</p>
             {role === 'student' ? (
               <p className={`text-xs font-bold ${isCameraEnabled ? 'text-success' : 'text-text-muted'}`}>
@@ -262,9 +263,12 @@ export function Navbar() {
               <p className="text-xs font-bold text-plum">👨‍🏫 МҰҒАЛІМ</p>
             )}
           </div>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-plum-pale to-soft-pink flex items-center justify-center border-2 border-rose pulse-ring">
+          <button
+            onClick={() => navigate('/profile')}
+            className="w-10 h-10 rounded-full bg-gradient-to-br from-plum-pale to-soft-pink flex items-center justify-center border-2 border-rose pulse-ring shrink-0"
+          >
             <span className="text-plum font-bold text-sm">{initials}</span>
-          </div>
+          </button>
         </div>
       </div>
     </header>

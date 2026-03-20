@@ -95,8 +95,11 @@ export default function SignLanguage() {
   const particlesRef = useRef<Array<{x: number, y: number, life: number, color: string}>>([])
   const rafRef = useRef<number>(0)
   const latestLandmarks = useRef<Landmark[][] | null>(null)
+  const bpmRef = useRef(bpm)
 
   const isStress = ['АШУЛЫ', 'ҚОРЫҚҚАН', 'ЖИІРКЕНГЕН'].includes(emotion)
+
+  useEffect(() => { bpmRef.current = bpm }, [bpm])
 
   // Sync video with global stream
   useEffect(() => {
@@ -112,10 +115,10 @@ export default function SignLanguage() {
       setHandDetected(true)
       latestLandmarks.current = handLandmarks
 
-      // Spawn WOW Particle
+      // Spawn WOW Particle (capped to avoid memory buildup)
       handLandmarks.forEach((hand: any) => {
         const indexTip = hand[8]
-        if (indexTip) {
+        if (indexTip && particlesRef.current.length < 120) {
           particlesRef.current.push({
             x: indexTip.x,
             y: indexTip.y,
@@ -176,7 +179,7 @@ export default function SignLanguage() {
         if (ctx) {
           cvs.width = cvs.clientWidth
           cvs.height = cvs.clientHeight
-          const points = ekgGenRef.current.update(bpm || 0)
+          const points = ekgGenRef.current.update(bpmRef.current || 0)
           
           ctx.clearRect(0, 0, cvs.width, cvs.height)
           ctx.beginPath()
@@ -261,7 +264,7 @@ export default function SignLanguage() {
 
     rafRef.current = requestAnimationFrame(drawLoop)
     return () => cancelAnimationFrame(rafRef.current)
-  }, [isCameraEnabled, bpm])
+  }, [isCameraEnabled])
 
   // Placeholder for local FPS (could be synced from Global with a store value)
   useEffect(() => {
@@ -277,18 +280,21 @@ export default function SignLanguage() {
 
     const timer = setTimeout(async () => {
       setIsGenerating(true)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 8000)
       try {
         const response = await fetch((import.meta.env.VITE_API_URL || '') + '/api/sign-language/sentence', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ words: history })
+          body: JSON.stringify({ words: history }),
+          signal: controller.signal
         })
+        clearTimeout(timeoutId)
         const data = await response.json()
-        if (data.sentence) {
-          setGeneratedSentence(data.sentence)
-        }
+        if (data.sentence) setGeneratedSentence(data.sentence)
       } catch (error) {
-        console.error('Failed to generate sentence', error)
+        clearTimeout(timeoutId)
+        if ((error as any)?.name !== 'AbortError') console.error('Failed to generate sentence', error)
       } finally {
         setIsGenerating(false)
       }

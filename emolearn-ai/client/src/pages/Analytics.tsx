@@ -193,7 +193,7 @@ export default function Analytics() {
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {kpis.map((kpi, i) => (
           <motion.div
             key={kpi.label}
@@ -314,7 +314,7 @@ export default function Analytics() {
           className="card"
         >
           <h3 className="font-bold text-text-primary mb-4">Белсенділік картасы (28 күн)</h3>
-          <div className="grid grid-cols-7 gap-2 mb-3">
+          <div className="grid grid-cols-7 gap-1 mb-3">
             {['ДУ','СЕ','СӘ','БЕ','ЖУ','СЕ','ЖЕ'].map(d => (
               <span key={d} className="text-center text-xs text-text-muted">{d}</span>
             ))}

@@ -23,6 +23,7 @@ export default function Tests() {
   const [current, setCurrent] = useState(0)
   const [result, setResult] = useState<{ score: number; total: number; answers: number[] } | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const [leaderboard, setLeaderboard] = useState<{ student_name: string; score: number; total: number }[]>([])
 
   const fetchTests = async () => {
@@ -34,7 +35,7 @@ export default function Tests() {
 
       // Check which ones the student already submitted
       if (studentId && list.length > 0) {
-        const checks = await Promise.all(
+        const checks = await Promise.allSettled(
           list.map(t =>
             fetch(API(`/api/tests/${t.id}/my-result?student_id=${studentId}`))
               .then(r => r.json())
@@ -42,7 +43,9 @@ export default function Tests() {
           )
         )
         const map: Record<string, MyResult> = {}
-        checks.forEach(({ id, result }) => { if (result) map[id] = result })
+        checks.forEach(item => {
+          if (item.status === 'fulfilled' && item.value.result) map[item.value.id] = item.value.result
+        })
         setMyResults(map)
       }
     } catch (err) {
@@ -82,27 +85,32 @@ export default function Tests() {
   const submitTest = async () => {
     if (!activeTest || !studentId) return
     setSubmitting(true)
+    setSubmitError('')
     try {
       const res = await fetch(API(`/api/tests/${activeTest.id}/submit`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ student_id: studentId, student_name: studentName, answers })
       })
+      if (!res.ok) throw new Error(`Сервер қатесі: ${res.status}`)
       const data = await res.json()
+      if (data.error) throw new Error(data.error)
       const r = { score: data.score, total: data.total, answers }
       setResult(r)
       setMyResults(prev => ({ ...prev, [activeTest.id]: { ...r, completed_at: new Date().toISOString() } }))
 
-      // Fetch leaderboard
-      const lbRes = await fetch(API(`/api/tests/${activeTest.id}/results`))
-      const lbData = await lbRes.json()
-      const sorted = (lbData.results || [])
-        .sort((a: any, b: any) => b.score / b.total - a.score / a.total)
-      setLeaderboard(sorted)
+      // Fetch leaderboard (non-critical — ignore if fails)
+      try {
+        const lbRes = await fetch(API(`/api/tests/${activeTest.id}/results`))
+        const lbData = await lbRes.json()
+        const sorted = (lbData.results || [])
+          .sort((a: any, b: any) => b.score / b.total - a.score / a.total)
+        setLeaderboard(sorted)
+      } catch { /* leaderboard is optional */ }
 
       setScreen('result')
     } catch (err) {
-      console.error('Submit error:', err)
+      setSubmitError(err instanceof Error ? err.message : 'Тест жіберу сәтсіз болды')
     } finally {
       setSubmitting(false)
     }
@@ -145,6 +153,12 @@ export default function Tests() {
             </div>
           </motion.div>
         </AnimatePresence>
+
+        {submitError && (
+          <div className="px-4 py-3 rounded-xl bg-danger/10 border border-danger/30 text-danger text-sm font-medium">
+            {submitError}
+          </div>
+        )}
 
         <div className="flex gap-3">
           <button onClick={() => setScreen('list')} className="px-5 py-3 rounded-xl border border-border-soft font-bold text-sm text-text-muted hover:text-danger transition-colors">

@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Upload, FileVideo, Copy, RotateCcw, Loader2, CheckCircle2, Film } from 'lucide-react'
-import { recognizeGesture, GestureHistory, type Landmark } from '../lib/gestureRecognizer'
+import { recognizeGesture, resetSequenceBuffer, GestureHistory, type Landmark } from '../lib/gestureRecognizer'
 
 function loadMediaPipe(): Promise<void> {
   return new Promise((resolve) => {
@@ -53,6 +53,7 @@ export default function VideoTranslate() {
 
   const processVideo = useCallback(async (file: File) => {
     abortRef.current = false
+    resetSequenceBuffer()
     setStatus('loading')
     setProgress(0)
     setWords([])

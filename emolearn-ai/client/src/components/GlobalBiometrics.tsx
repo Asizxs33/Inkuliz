@@ -4,8 +4,8 @@ import { useUserStore } from '../store/userStore'
 import { rPPGProcessor } from '../lib/rppg'
 import { EmotionDetector } from '../lib/emotionDetector'
 import { emitBiometricUpdate } from '../lib/socket'
-import { Camera, RefreshCw, CameraOff, Activity } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Camera, RefreshCw, CameraOff, Activity, GripVertical } from 'lucide-react'
+import { motion, AnimatePresence, useMotionValue } from 'framer-motion'
 
 // Force Vite to bundle the audio properly so Vercel sets the correct MIME type
 import alarmSound from '../assets/alarm_40s.m4a'
@@ -114,6 +114,17 @@ export default function GlobalBiometrics() {
   // Sleep Detection
   const [isSleeping, setIsSleeping] = useState(false)
   const sleepCounterRef = useRef<number>(0)
+  const awakeCounterRef = useRef<number>(0)
+
+  // Camera error feedback
+  const [cameraError, setCameraError] = useState<string>('')
+
+  // Draggable widget position (persisted across navigations)
+  const initWidgetPos = (() => {
+    try { const s = localStorage.getItem('cam-widget-pos'); return s ? JSON.parse(s) : { x: 0, y: 0 } } catch { return { x: 0, y: 0 } }
+  })()
+  const widgetX = useMotionValue(initWidgetPos.x)
+  const widgetY = useMotionValue(initWidgetPos.y)
   
   // Store local copies for render loop safely
   const currentBpmRef = useRef<number>(0)
@@ -200,7 +211,7 @@ export default function GlobalBiometrics() {
       // Spawn WOW Particles if hands detected
       results.multiHandLandmarks.forEach((hand: any) => {
         const indexTip = hand[8]
-        if (indexTip) {
+        if (indexTip && particlesRef.current.length < 120) {
           particlesRef.current.push({
             x: indexTip.x,
             y: indexTip.y,
@@ -316,17 +327,26 @@ export default function GlobalBiometrics() {
               setCognitive(emotionResult.cognitive)
               isStressRef.current = ['АШУЛЫ', 'ҚОРЫҚҚАН', 'ЖИІРКЕНГЕН'].includes(emotionResult.emotionKz)
               
-              // Sleep Detection Logic - Trigger Kairat Nurtas if sleepy/eyes closed for 4 seconds!
+              // Sleep Detection Logic
               if (
-                emotionResult.isEyesClosed || 
+                emotionResult.isEyesClosed ||
                 ['ҰЙҚЫДА', 'ШАРШАҒАН', 'ЗЕРІККЕН', 'БЕЙҚАМ', 'ЖАЛЫҚҚАН'].includes(emotionResult.emotionKz)
               ) {
+                awakeCounterRef.current = 0
                 sleepCounterRef.current += 1
                 if (sleepCounterRef.current >= 4 && !isSleeping) {
                    setIsSleeping(true)
                 }
               } else {
                 sleepCounterRef.current = 0
+                // Auto-dismiss alarm if eyes have been open for ~10 seconds
+                if (isSleeping) {
+                  awakeCounterRef.current += 1
+                  if (awakeCounterRef.current >= 10) {
+                    setIsSleeping(false)
+                    awakeCounterRef.current = 0
+                  }
+                }
               }
             }
           }
@@ -404,11 +424,18 @@ export default function GlobalBiometrics() {
           handsRef.current = hands
         }
 
+        setCameraError('')
         setIsActive(true)
         startLoop()
-      } catch (err) {
+      } catch (err: any) {
         console.error('Global camera error:', err)
-        if (currentDeviceId) setCurrentDeviceId('') 
+        const msg = err?.name === 'NotAllowedError'
+          ? 'Камераға рұқсат берілмеді'
+          : err?.name === 'NotFoundError'
+            ? 'Камера табылмады'
+            : 'Камераны іске қосу сәтсіз болды'
+        setCameraError(msg)
+        if (currentDeviceId) setCurrentDeviceId('')
       } finally {
         loadingRef.current = false
       }
@@ -453,70 +480,87 @@ export default function GlobalBiometrics() {
          </div>
       )}
 
-      <div className="fixed bottom-4 right-4 z-[9999] pointer-events-none">
-         <div className="flex flex-col items-end gap-2">
-           <div className="flex gap-2">
-              {isActive && devices.length > 1 && (
-                <button 
-                  onClick={switchCamera}
-                  className="pointer-events-auto w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-plum hover:bg-plum-pale transition-colors border border-plum/20"
-                >
-                  <RefreshCw size={20} />
-                </button>
-              )}
-              <button 
-                onClick={toggleCamera}
-                className={`pointer-events-auto w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-colors border ${
-                  isEnabled ? 'bg-white text-rose border-rose/20' : 'bg-rose text-white border-transparent'
-                }`}
-              >
-                {isEnabled ? <Camera size={20} /> : <CameraOff size={20} />}
-              </button>
-           </div>
+      <motion.div
+        drag
+        dragMomentum={false}
+        dragElastic={0}
+        style={{ x: widgetX, y: widgetY, position: 'fixed', bottom: 16, right: 16, zIndex: 9999 }}
+        onDragEnd={() => {
+          localStorage.setItem('cam-widget-pos', JSON.stringify({ x: widgetX.get(), y: widgetY.get() }))
+        }}
+        className="flex flex-col items-end gap-2 select-none"
+      >
+        {cameraError && (
+          <div className="flex items-center gap-2 bg-danger/90 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-lg max-w-[200px] text-right pointer-events-auto">
+            <span>{cameraError}</span>
+            <button onClick={() => setCameraError('')} className="shrink-0 opacity-70 hover:opacity-100">✕</button>
+          </div>
+        )}
+        <div className="flex gap-2 pointer-events-auto">
+          {isActive && devices.length > 1 && (
+            <button
+              onClick={switchCamera}
+              className="w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-plum hover:bg-plum-pale transition-colors border border-plum/20"
+            >
+              <RefreshCw size={20} />
+            </button>
+          )}
+          <button
+            onClick={toggleCamera}
+            className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-colors border ${
+              isEnabled ? 'bg-white text-rose border-rose/20' : 'bg-rose text-white border-transparent'
+            }`}
+          >
+            {isEnabled ? <Camera size={20} /> : <CameraOff size={20} />}
+          </button>
+        </div>
 
-           {/* Camera Preview with WOW Effects */}
-           {isActive && isEnabled && (
-             <div className="w-48 h-36 rounded-2xl overflow-hidden border-2 shadow-2xl bg-black pointer-events-auto group relative transition-all duration-300 hover:scale-105 hover:w-64 hover:h-48 origin-bottom-right"
-                  style={{ borderColor: isStressRef.current ? '#E8507A' : '#A05891' }}
-             >
-                <video 
-                  ref={(el) => {
-                    if (el && videoRef.current && el !== videoRef.current) {
-                       el.srcObject = videoRef.current.srcObject
-                       if (el.paused) el.play().catch(() => {})
-                    }
-                  }}
-                  muted 
-                  playsInline 
-                  className="w-full h-full object-cover"
-                  style={{ transform: currentDeviceId ? 'none' : 'scaleX(-1)' }}
-                />
-                
-                {/* Wow Effects Canvas (Particles) */}
-                <canvas
-                  ref={canvasRef}
-                  className="absolute inset-0 w-full h-full pointer-events-none"
-                  style={{ transform: currentDeviceId ? 'none' : 'scaleX(-1)' }}
-                />
+        {/* Camera Preview with WOW Effects */}
+        {isActive && isEnabled && (
+          <div
+            className="w-48 h-36 rounded-2xl overflow-hidden border-2 shadow-2xl bg-black pointer-events-auto group relative"
+            style={{ borderColor: isStressRef.current ? '#E8507A' : '#A05891', cursor: 'grab' }}
+          >
+            <video
+              ref={(el) => {
+                if (el && videoRef.current && el !== videoRef.current) {
+                  el.srcObject = videoRef.current.srcObject
+                  if (el.paused) el.play().catch(() => {})
+                }
+              }}
+              muted
+              playsInline
+              className="w-full h-full object-cover pointer-events-none"
+              style={{ transform: currentDeviceId ? 'none' : 'scaleX(-1)' }}
+            />
 
-                {/* EKG Overlay */}
-                <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/80 to-transparent flex items-end">
-                   <canvas
-                     ref={ekgRef}
-                     className="w-full h-full pointer-events-none opacity-80"
-                   />
-                </div>
+            {/* Wow Effects Canvas (Particles) */}
+            <canvas
+              ref={canvasRef}
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              style={{ transform: currentDeviceId ? 'none' : 'scaleX(-1)' }}
+            />
 
-                <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm border border-white/10">
-                   <div className={`w-2 h-2 rounded-full animate-pulse ${isStressRef.current ? 'bg-danger' : 'bg-success'}`} />
-                   <span className="text-[9px] text-white font-bold uppercase tracking-widest">
-                     {currentBpmRef.current > 0 ? `${currentBpmRef.current} BPM` : 'ӨЛШЕНУДЕ'}
-                   </span>
-                </div>
-             </div>
-           )}
-         </div>
-      </div>
+            {/* EKG Overlay */}
+            <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/80 to-transparent flex items-end">
+              <canvas ref={ekgRef} className="w-full h-full pointer-events-none opacity-80" />
+            </div>
+
+            {/* BPM badge */}
+            <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm border border-white/10 pointer-events-none">
+              <div className={`w-2 h-2 rounded-full animate-pulse ${isStressRef.current ? 'bg-danger' : 'bg-success'}`} />
+              <span className="text-[9px] text-white font-bold uppercase tracking-widest">
+                {currentBpmRef.current > 0 ? `${currentBpmRef.current} BPM` : 'ӨЛШЕНУДЕ'}
+              </span>
+            </div>
+
+            {/* Drag handle hint */}
+            <div className="absolute top-2 right-2 pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity">
+              <GripVertical size={14} className="text-white" />
+            </div>
+          </div>
+        )}
+      </motion.div>
       
       {/* WAKE UP ALARM (Kairat Nurtas) */}
       <AnimatePresence>
@@ -554,6 +598,7 @@ export default function GlobalBiometrics() {
               onClick={() => {
                 setIsSleeping(false)
                 sleepCounterRef.current = 0
+                awakeCounterRef.current = 0
               }}
               className="bg-rose text-white text-xl font-black px-12 py-6 rounded-full shadow-[0_0_40px_rgba(232,80,122,0.6)] hover:scale-105 active:scale-95 transition-all"
             >

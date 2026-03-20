@@ -9,6 +9,17 @@
     color: #1C1C2E !important;
     font-family: 'Nunito', sans-serif;
     min-height: 100vh;
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
+  }
+  /* Faster tap response on mobile */
+  button, a, [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Minimum touch target size */
+  button, a {
+    min-height: 44px;
   }
 }
 

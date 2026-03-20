@@ -36,6 +36,10 @@ import { ML_CLASSIFIER } from './mlClassifier'
 
 let sequenceBuffer: Landmark[][][] = []
 
+export function resetSequenceBuffer() {
+  sequenceBuffer = []
+}
+
 export function recognizeGesture(hands: Landmark[][]): GestureResult {
   if (!hands || hands.length === 0 || !hands[0] || hands[0].length < 21) {
     if (sequenceBuffer.length > 0) sequenceBuffer = []

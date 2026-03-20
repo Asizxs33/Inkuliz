@@ -46,14 +46,18 @@ export async function getAIResponse(
     { role: 'user', content: message },
   ]
 
-  const response = await getOpenAI().chat.completions.create({
-    model: 'gpt-4o',
-    messages,
-    max_tokens: 400,
-    temperature: 0.7,
-  })
-
-  return response.choices[0].message.content
+  try {
+    const response = await getOpenAI().chat.completions.create({
+      model: 'gpt-4o',
+      messages,
+      max_tokens: 400,
+      temperature: 0.7,
+    })
+    return response.choices[0].message.content
+  } catch (err) {
+    console.error('OpenAI getAIResponse error:', err)
+    return 'Кешіріңіз, AI уақытша қол жетімсіз. Кейінірек қайталаңыз.'
+  }
 }
 
 export async function adaptTask(telemetryDetails: string, emotion: string, bpm: number) {
@@ -75,13 +79,17 @@ export async function adaptTask(telemetryDetails: string, emotion: string, bpm: 
     }
   `
 
-  const r = await getOpenAI().chat.completions.create({
-    model: 'gpt-4o',
-    messages: [{ role: 'user', content: prompt }],
-    response_format: { type: 'json_object' },
-  })
-
-  return JSON.parse(r.choices[0].message.content!)
+  try {
+    const r = await getOpenAI().chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+    })
+    return JSON.parse(r.choices[0].message.content!)
+  } catch (err) {
+    console.error('OpenAI adaptTask error:', err)
+    return { emotion: 'ҚАЛЫПТЫ', action: 'maintain', reason: 'AI қол жетімсіз', cognitiveLoad: '50' }
+  }
 }
 
 export async function generateSentenceFromWords(words: string[]) {
@@ -94,12 +102,16 @@ export async function generateSentenceFromWords(words: string[]) {
     Сөздер: ${words.join(', ')}
   `
 
-  const response = await getOpenAI().chat.completions.create({
-    model: 'gpt-4o',
-    messages: [{ role: 'user', content: prompt }],
-    max_tokens: 150,
-    temperature: 0.6,
-  })
-
-  return response.choices[0].message.content?.trim() || ''
+  try {
+    const response = await getOpenAI().chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 150,
+      temperature: 0.6,
+    })
+    return response.choices[0].message.content?.trim() || ''
+  } catch (err) {
+    console.error('OpenAI generateSentence error:', err)
+    return words.join(' ')
+  }
 }

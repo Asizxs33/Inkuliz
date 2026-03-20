@@ -53,11 +53,12 @@ analyticsRouter.get('/overview/:userId', async (req, res) => {
       const hour = l.timestamp ? new Date(l.timestamp).getHours().toString().padStart(2, '0') + ':00' : '00:00'
       if (!hourGroups[hour]) hourGroups[hour] = { focused: 0, happy: 0, bored: 0, stressed: 0, count: 0 }
       hourGroups[hour].count++
-      const em = (l.emotion || '').toLowerCase()
-      if (em.includes('neutral') || em.includes('шоғыр')) hourGroups[hour].focused++
-      else if (em.includes('happy') || em.includes('қуаныш')) hourGroups[hour].happy++
-      else if (em.includes('sad') || em.includes('мұңды') || em.includes('зерік')) hourGroups[hour].bored++
-      else if (em.includes('angry') || em.includes('fear') || em.includes('stress') || em.includes('ашулы') || em.includes('қорық')) hourGroups[hour].stressed++
+      const em = l.emotion || ''
+      const emLow = em.toLowerCase()
+      if (em === 'ШОҒЫРЛАНҒАН' || em === 'БЕЙТАРАП' || emLow.includes('neutral') || emLow.includes('шоғыр')) hourGroups[hour].focused++
+      else if (em === 'ҚУАНЫШТЫ' || emLow.includes('happy') || emLow.includes('қуаныш')) hourGroups[hour].happy++
+      else if (em === 'МҰҢДЫ' || em === 'ЗЕРІКТІ' || emLow.includes('sad') || emLow.includes('мұңды') || emLow.includes('зерік')) hourGroups[hour].bored++
+      else if (em === 'АШУЛЫ' || em === 'ҚОРЫҚҚАН' || em === 'ЖИІРКЕНГЕН' || emLow.includes('angry') || emLow.includes('fear') || emLow.includes('stress') || emLow.includes('ашулы') || emLow.includes('қорық')) hourGroups[hour].stressed++
       else hourGroups[hour].focused++
     })
 

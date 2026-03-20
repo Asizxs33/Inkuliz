@@ -229,7 +229,7 @@ export default function Dashboard() {
               <span>{totalWords - bookmarkCount} сөз қалды</span>
             </div>
             {/* Category breakdown */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
               {['basic', 'family', 'school', 'numbers', 'colors', 'emotions', 'food'].map(cat => {
                 const catWords = DICTIONARY_DATA.filter(w => w.category === cat)
                 const catName = cat === 'basic' ? 'Негізгі' : cat === 'family' ? 'Отбасы' : cat === 'school' ? 'Мектеп' : cat === 'numbers' ? 'Сандар' : cat === 'colors' ? 'Түстер' : cat === 'emotions' ? 'Сезімдер' : 'Тағам'
@@ -412,7 +412,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 50, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: 50, x: '-50%' }}
-            className={`fixed bottom-10 left-1/2 px-6 py-3 rounded-full shadow-lg font-bold text-white z-[9999] flex items-center gap-2 ${
+            className={`fixed bottom-20 md:bottom-10 left-1/2 px-6 py-3 rounded-full shadow-lg font-bold text-white z-[9999] flex items-center gap-2 ${
               toast.type === 'success' ? 'bg-success' : toast.type === 'error' ? 'bg-danger' : 'bg-plum'
             }`}
           >

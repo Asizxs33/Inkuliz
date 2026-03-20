@@ -7,11 +7,23 @@ import { eq } from 'drizzle-orm'
 
 export const authRouter = Router()
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const VALID_ROLES = new Set(['student', 'teacher'])
+
 // POST /api/auth/register
 authRouter.post('/register', async (req, res) => {
   try {
     const { name, email, password, role } = req.body
-    
+
+    if (!name || typeof name !== 'string' || name.trim().length < 2)
+      return res.status(400).json({ error: 'Аты кемінде 2 символ болуы керек' })
+    if (!email || !EMAIL_RE.test(email))
+      return res.status(400).json({ error: 'Email форматы дұрыс емес' })
+    if (!password || password.length < 6)
+      return res.status(400).json({ error: 'Пароль кемінде 6 символ болуы керек' })
+
+    const safeRole = VALID_ROLES.has(role) ? role : 'student'
+
     // Check if exists
     const existing = await db.select().from(users).where(eq(users.email, email))
     if (existing.length > 0) {
@@ -21,15 +33,15 @@ authRouter.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10)
 
     const [newUser] = await db.insert(users).values({
-      name,
-      email,
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
       password: hashedPassword,
-      role: role || 'student',
+      role: safeRole,
     }).returning()
 
     const token = jwt.sign(
       { id: newUser.id, email: newUser.email, role: newUser.role },
-      process.env.JWT_SECRET || 'secret',
+      process.env.JWT_SECRET!,
       { expiresIn: '7d' }
     )
 
@@ -64,7 +76,10 @@ authRouter.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body
 
-    const existing = await db.select().from(users).where(eq(users.email, email))
+    if (!email || !password)
+      return res.status(400).json({ error: 'Email және пароль міндетті' })
+
+    const existing = await db.select().from(users).where(eq(users.email, email.toLowerCase().trim()))
     if (existing.length === 0) {
       return res.status(400).json({ error: 'Неверный email или пароль' })
     }
@@ -78,7 +93,7 @@ authRouter.post('/login', async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || 'secret',
+      process.env.JWT_SECRET!,
       { expiresIn: '7d' }
     )
 
