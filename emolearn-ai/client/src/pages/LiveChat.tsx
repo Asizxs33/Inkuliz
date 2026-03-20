@@ -116,7 +116,7 @@ export default function LiveChat() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] gap-6 animate-fade-in max-w-5xl mx-auto">
+    <div className="flex flex-col h-[calc(100vh-14rem)] md:h-[calc(100vh-9rem)] lg:h-[calc(100vh-100px)] gap-6 animate-fade-in max-w-5xl mx-auto">
       {/* Header */}
       <div className="bg-gradient-to-r from-plum to-rose rounded-2xl p-5 text-white shadow-lg overflow-hidden relative">
         <div className="absolute top-0 right-0 p-8 opacity-20 transform translate-x-1/4 -translate-y-1/4 rotate-12">

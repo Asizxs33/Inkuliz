@@ -200,7 +200,7 @@ export default function VideoTranslate() {
           htmlFor="video-upload"
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
-          className="flex flex-col items-center justify-center gap-4 p-12 rounded-2xl border-2 border-dashed border-plum/30 bg-plum/5 cursor-pointer hover:border-plum/60 hover:bg-plum/10 transition-all"
+          className="flex flex-col items-center justify-center gap-4 p-6 lg:p-12 rounded-2xl border-2 border-dashed border-plum/30 bg-plum/5 cursor-pointer hover:border-plum/60 hover:bg-plum/10 transition-all"
         >
           <div className="w-16 h-16 rounded-2xl bg-plum/10 flex items-center justify-center">
             <Upload size={28} className="text-plum" />

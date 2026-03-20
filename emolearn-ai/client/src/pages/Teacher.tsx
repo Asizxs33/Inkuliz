@@ -258,7 +258,7 @@ export default function Teacher() {
   if (classes.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 animate-fade-in">
-        <div className="card max-w-md w-full p-8 text-center">
+        <div className="card max-w-md w-full p-5 sm:p-8 text-center">
           <div className="w-16 h-16 bg-plum-pale rounded-2xl flex items-center justify-center mx-auto mb-4">
             <User size={32} className="text-plum" />
           </div>
@@ -341,7 +341,7 @@ export default function Teacher() {
         {/* Student Grid */}
         <div>
           {students.length === 0 ? (
-            <div className="card p-12 text-center h-full flex flex-col items-center justify-center border-dashed border-2">
+            <div className="card p-6 sm:p-12 text-center h-full flex flex-col items-center justify-center border-dashed border-2">
               <p className="text-text-muted font-medium mb-2">Бұл сыныпта әлі оқушылар жоқ</p>
               <p className="text-sm text-text-muted mt-2">
                 Студенттерге кодты беріңіз: <strong className="text-plum">{activeClass?.invite_code}</strong>

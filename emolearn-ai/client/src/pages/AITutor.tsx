@@ -303,7 +303,7 @@ export default function AITutor() {
       </div>
 
       {/* ═══ RIGHT PANEL — Live Biometrics ═══ */}
-      <div className="w-full lg:w-[300px] shrink-0 flex flex-col gap-4">
+      <div className="hidden lg:flex w-[300px] shrink-0 flex-col gap-4">
         
         {/* Emotion Status */}
         <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}

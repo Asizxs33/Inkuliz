@@ -635,7 +635,7 @@ export default function SignLanguage() {
 
       {/* ── LIVE CHAT PANEL ── */}
       {isInLiveRoom && (
-        <div className="flex flex-col gap-4 lg:border-l border-t lg:border-t-0 border-white/5 lg:pl-6 pt-6 lg:pt-0 h-[600px] lg:h-[calc(100vh-120px)]">
+        <div className="flex flex-col gap-4 lg:border-l border-t lg:border-t-0 border-white/5 lg:pl-6 pt-6 lg:pt-0 h-[400px] md:h-[500px] lg:h-[calc(100vh-120px)]">
           <div className="flex items-center justify-between mb-2">
              <div className="flex items-center gap-2">
                <div className="w-2.5 h-2.5 bg-success rounded-full animate-pulse" />
