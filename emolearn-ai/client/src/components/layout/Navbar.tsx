@@ -91,7 +91,7 @@ export function Navbar() {
           id: '1',
           type: 'info',
           message: 'Жүйеге қош келдіңіз!',
-          from: 'EmoLearn AI',
+          from: 'FeelFlow',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           read: false
         }
@@ -127,7 +127,7 @@ export function Navbar() {
   return (
     <header className="h-14 md:h-16 bg-white border-b border-border-soft flex items-center justify-between px-3 md:px-6 shrink-0 z-50">
       <div className="flex items-center gap-3">
-        <h2 className="text-text-primary font-bold text-base md:text-lg">EmoLearn AI</h2>
+        <h2 className="text-text-primary font-bold text-base md:text-lg">FeelFlow</h2>
       </div>
       <div className="flex items-center gap-2 md:gap-4">
 

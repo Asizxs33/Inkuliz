@@ -57,7 +57,7 @@ export default function Login() {
           <div className="w-16 h-16 bg-gradient-to-br from-plum to-rose rounded-2xl flex items-center justify-center shadow-lg shadow-plum/20 mb-4">
             <Brain size={32} className="text-white" />
           </div>
-          <h1 className="text-2xl font-extrabold text-text-primary">EmoLearn AI</h1>
+          <h1 className="text-2xl font-extrabold text-text-primary">FeelFlow</h1>
           <p className="text-sm text-text-muted mt-1">Оқу платформасына қош келдіңіз</p>
         </div>
 

@@ -18,7 +18,7 @@ export async function getAIResponse(
   history: Array<{ role: string; content: string }> = []
 ) {
   const system = `
-    Сен EmoLearn AI — Қазақстан студенттеріне арналған
+    Сен FeelFlow — Қазақстан студенттеріне арналған
     ақылды оқыту көмекшісісің.
 
     Студенттің қазіргі жағдайы:

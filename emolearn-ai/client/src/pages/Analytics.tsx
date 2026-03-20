@@ -406,7 +406,7 @@ export default function Analytics() {
 
       {/* Footer */}
       <div className="flex items-center justify-between text-xs text-text-muted py-4 border-t border-border-soft">
-        <span>© 2025 EMOLEARN AI ANALYTICS. НАҚТЫ ДЕРЕКТЕР НЕГІЗІНДЕ.</span>
+        <span>© 2025 FEELFLOW ANALYTICS. НАҚТЫ ДЕРЕКТЕР НЕГІЗІНДЕ.</span>
         <span>{timeline.length} деректер нүктесі жиналды</span>
       </div>
     </div>

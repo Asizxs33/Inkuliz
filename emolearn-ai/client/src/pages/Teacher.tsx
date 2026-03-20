@@ -73,7 +73,7 @@ export default function Teacher() {
           student.id,
           'info',
           `Мұғалім ${name} сізді "${activeClass.name}" сыныбына шақырды. Баптаулардан қабылдаңыз!`,
-          'EmoLearn AI Систем'
+          'FeelFlow Систем'
         )
         alert('Шақыру жіберілді!')
         setShowInviteModal(false)

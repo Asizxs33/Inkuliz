@@ -59,7 +59,7 @@ setupSocket(io)
 // Start server on all environments since Render needs it
 const PORT = process.env.PORT || 3001
 httpServer.listen(PORT, () => {
-  console.log(`🚀 EmoLearn AI Server running on port ${PORT}`)
+  console.log(`🚀 FeelFlow Server running on port ${PORT}`)
 })
 
 export default app

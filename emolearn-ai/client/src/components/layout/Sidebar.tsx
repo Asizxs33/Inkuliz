@@ -64,7 +64,7 @@ export function Sidebar() {
             <span className="text-white font-bold text-lg">E</span>
           </div>
           <span className="text-plum font-extrabold text-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            EmoLearn AI
+            FeelFlow
           </span>
         </div>
 

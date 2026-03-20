@@ -15,5 +15,5 @@ telegramRouter.post('/send', async (req, res) => {
 })
 
 telegramRouter.get('/status', async (_req, res) => {
-  res.json({ connected: !!process.env.TELEGRAM_BOT_TOKEN, botName: 'EmoLearn Bot' })
+  res.json({ connected: !!process.env.TELEGRAM_BOT_TOKEN, botName: 'FeelFlow Bot' })
 })
