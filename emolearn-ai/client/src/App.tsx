@@ -11,6 +11,7 @@ import TeacherTests from './pages/TeacherTests'
 import TeacherAnalytics from './pages/TeacherAnalytics'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Landing from './pages/Landing'
 import AITutor from './pages/AITutor'
 import LiveChat from './pages/LiveChat'
 import VideoTranslate from './pages/VideoTranslate'
@@ -53,17 +54,21 @@ function RoleRedirect() {
   return <Navigate to={role === 'teacher' ? '/teacher' : '/dashboard'} replace />
 }
 
+function LandingOrApp() {
+  const { isLoggedIn, role } = useUserStore()
+  if (isLoggedIn) return <Navigate to={role === 'teacher' ? '/teacher' : '/dashboard'} replace />
+  return <Landing />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <NotificationToast />
       <Routes>
         {/* Public Routes */}
+        <Route path="/" element={<LandingOrApp />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
-        {/* Protected Routes */}
-        <Route path="/" element={<ProtectedLayout><RoleRedirect /></ProtectedLayout>} />
         
         {/* Student Routes */}
         <Route path="/dashboard" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
