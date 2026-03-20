@@ -14,6 +14,7 @@ import Register from './pages/Register'
 import AITutor from './pages/AITutor'
 import LiveChat from './pages/LiveChat'
 import VideoTranslate from './pages/VideoTranslate'
+import Tests from './pages/Tests'
 import GlobalBiometrics from './components/GlobalBiometrics'
 import { useUserStore } from './store/userStore'
 
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/ai-tutor" element={<ProtectedLayout><AITutor /></ProtectedLayout>} />
         <Route path="/live-chat" element={<ProtectedLayout><LiveChat /></ProtectedLayout>} />
         <Route path="/video-translate" element={<ProtectedLayout><VideoTranslate /></ProtectedLayout>} />
+        <Route path="/tests" element={<ProtectedLayout><Tests /></ProtectedLayout>} />
 
         {/* Teacher Routes */}
         <Route path="/teacher" element={<ProtectedLayout><Teacher /></ProtectedLayout>} />

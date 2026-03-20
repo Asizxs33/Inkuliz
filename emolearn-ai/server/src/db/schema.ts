@@ -104,3 +104,23 @@ export const achievements = pgTable('achievements', {
   badge: varchar('badge', { length: 100 }),
   earned_at: timestamp('earned_at').defaultNow(),
 })
+
+export const tests = pgTable('tests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teacher_id: uuid('teacher_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  questions: jsonb('questions').notNull(), // { question, options: string[], correct: number }[]
+  status: varchar('status', { length: 10 }).default('open'), // 'open' | 'closed'
+  created_at: timestamp('created_at').defaultNow(),
+})
+
+export const testResults = pgTable('test_results', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  test_id: uuid('test_id').references(() => tests.id, { onDelete: 'cascade' }).notNull(),
+  student_id: uuid('student_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  student_name: varchar('student_name', { length: 100 }),
+  answers: jsonb('answers').notNull(), // number[]
+  score: integer('score').notNull(),
+  total: integer('total').notNull(),
+  completed_at: timestamp('completed_at').defaultNow(),
+})

@@ -11,6 +11,7 @@ import { signLanguageRouter } from './routes/signLanguage.js'
 import { analyticsRouter } from './routes/analytics.js'
 import { telegramRouter } from './routes/telegram.js'
 import { classesRouter } from './routes/classes.js'
+import { testsRouter } from './routes/tests.js'
 import { setupSocket } from './socket/handlers.js'
 import { initTelegramBot } from './services/telegramService.js'
 
@@ -43,6 +44,7 @@ app.use('/api/sign-language', signLanguageRouter)
 app.use('/api/analytics', analyticsRouter)
 app.use('/api/telegram', telegramRouter)
 app.use('/api/classes', classesRouter)
+app.use('/api/tests', testsRouter)
 
 // Health check
 app.get('/api/health', (_req, res) => {
