@@ -115,67 +115,120 @@ export interface MLTrainingSequence {
   sequence?: number[][]; // Cached normalized calculation
 }
 
+const API_BASE = (import.meta as any).env?.VITE_API_URL || ''
+
 export class GestureML {
   private examples: MLTrainingSequence[] = []
-  private readonly STORAGE_KEY = 'emolearn_dtw_v3' // Upgraded storage key to prevent old cache collisions
+  private readonly STORAGE_KEY = 'emolearn_dtw_v3'
+  private userId: string | null = null
 
   constructor() {
-    this.load()
+    this.loadFromLocalStorage()
   }
 
-  private load() {
+  // Call once after login so server sync works
+  public setUserId(id: string) {
+    if (this.userId === id) return
+    this.userId = id
+    this.syncFromServer()
+  }
+
+  private loadFromLocalStorage() {
     try {
       const data = localStorage.getItem(this.STORAGE_KEY)
       if (data) {
-        const rawExamples = JSON.parse(data)
-        // Dynamically re-normalize everything on load so any adjustments to VELOCITY_WEIGHT apply to historical data!
-        this.examples = rawExamples.map((ex: any) => ({
+        const raw = JSON.parse(data)
+        this.examples = raw.map((ex: any) => ({
           wordKz: ex.wordKz,
           rawSequence: ex.rawSequence,
-          sequence: normalizeDualSequence(ex.rawSequence) 
+          sequence: normalizeDualSequence(ex.rawSequence),
         }))
-        console.log(`[ML] Loaded ${this.examples.length} dual-hand sequence examples.`)
+        console.log(`[ML] Loaded ${this.examples.length} examples from localStorage`)
       }
     } catch (e) {
-      console.warn('[ML] Failed to load dataset', e)
+      console.warn('[ML] localStorage load failed', e)
     }
   }
 
-  private save() {
+  private saveToLocalStorage() {
     try {
-      // Strip out the cached sequence calculation to save Space in LocalStorage
-      const serialized = this.examples.map(ex => ({
-         wordKz: ex.wordKz,
-         rawSequence: ex.rawSequence
-      }))
+      const serialized = this.examples.map(ex => ({ wordKz: ex.wordKz, rawSequence: ex.rawSequence }))
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(serialized))
     } catch (e) {
-      console.warn('[ML] Failed to save dataset', e)
+      console.warn('[ML] localStorage save failed', e)
     }
   }
 
-  public addSequenceExample(wordKz: string, rawSequence: Landmark[][][]) {
+  // Merge server sequences (server is source of truth)
+  async syncFromServer() {
+    if (!this.userId) return
+    try {
+      const res = await fetch(`${API_BASE}/api/gestures/${this.userId}`)
+      if (!res.ok) return
+      const { sequences } = await res.json()
+      if (!sequences?.length) return
+
+      const serverExamples: MLTrainingSequence[] = sequences.map((row: any) => ({
+        wordKz: row.word_kz,
+        rawSequence: row.raw_sequence,
+        sequence: normalizeDualSequence(row.raw_sequence),
+      }))
+
+      // Merge: keep local examples that aren't on server yet, add all server ones
+      const serverKeys = new Set(serverExamples.map((e, i) => `${e.wordKz}_${i}`))
+      this.examples = serverExamples
+      this.saveToLocalStorage()
+      console.log(`[ML] Synced ${serverExamples.length} examples from server`)
+    } catch (e) {
+      console.warn('[ML] Server sync failed, using localStorage', e)
+    }
+  }
+
+  public async addSequenceExample(wordKz: string, rawSequence: Landmark[][][]) {
     const sequence = normalizeDualSequence(rawSequence)
-    if (sequence.length < 5) return // Too short
+    if (sequence.length < 5) return
 
     this.examples.push({ wordKz, rawSequence, sequence })
-    this.save()
+    this.saveToLocalStorage()
+
+    // Save to server in background
+    if (this.userId) {
+      try {
+        await fetch(`${API_BASE}/api/gestures`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: this.userId, wordKz, rawSequence }),
+        })
+      } catch (e) {
+        console.warn('[ML] Server save failed, stored locally only', e)
+      }
+    }
   }
 
-  public clearExamples(wordKz: string) {
+  public async clearExamples(wordKz: string) {
     this.examples = this.examples.filter(e => e.wordKz !== wordKz)
-    this.save()
-  }
-  
-  public getCounts(): Record<string, number> {
-     const counts: Record<string, number> = {}
-     for(const ex of this.examples) {
-        counts[ex.wordKz] = (counts[ex.wordKz] || 0) + 1
-     }
-     return counts
+    this.saveToLocalStorage()
+
+    if (this.userId) {
+      try {
+        await fetch(`${API_BASE}/api/gestures/${this.userId}/${encodeURIComponent(wordKz)}`, {
+          method: 'DELETE',
+        })
+      } catch (e) {
+        console.warn('[ML] Server delete failed', e)
+      }
+    }
   }
 
-  public predictSequence(rawSequence: Landmark[][][]): { wordKz: string, distance: number } | null {
+  public getCounts(): Record<string, number> {
+    const counts: Record<string, number> = {}
+    for (const ex of this.examples) {
+      counts[ex.wordKz] = (counts[ex.wordKz] || 0) + 1
+    }
+    return counts
+  }
+
+  public predictSequence(rawSequence: Landmark[][][]): { wordKz: string; distance: number } | null {
     if (this.examples.length === 0 || rawSequence.length < 5) return null
 
     const liveSequence = normalizeDualSequence(rawSequence)
@@ -193,14 +246,8 @@ export class GestureML {
       }
     }
 
-    // Euclidean distance in 128D space.
-    // Adjusted mathematically: we are using VELOCITY_WEIGHT = 1.8
-    // distance will roughly hover around 0.3 - 0.7 for good motions.
     if (minDistance < 1.1) {
-      return {
-        wordKz: bestMatch,
-        distance: minDistance
-      }
+      return { wordKz: bestMatch, distance: minDistance }
     }
     return null
   }

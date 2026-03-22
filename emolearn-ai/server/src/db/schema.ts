@@ -124,3 +124,12 @@ export const testResults = pgTable('test_results', {
   total: integer('total').notNull(),
   completed_at: timestamp('completed_at').defaultNow(),
 })
+
+// User-trained gesture sequences (synced across devices)
+export const gestureModels = pgTable('gesture_models', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  user_id: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  word_kz: varchar('word_kz', { length: 100 }).notNull(),
+  raw_sequence: jsonb('raw_sequence').notNull(), // Landmark[][][]
+  created_at: timestamp('created_at').defaultNow(),
+})

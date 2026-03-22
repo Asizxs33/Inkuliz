@@ -12,6 +12,7 @@ import { analyticsRouter } from './routes/analytics.js'
 import { telegramRouter } from './routes/telegram.js'
 import { classesRouter } from './routes/classes.js'
 import { testsRouter } from './routes/tests.js'
+import { gesturesRouter } from './routes/gestures.js'
 import { setupSocket } from './socket/handlers.js'
 import { setIo } from './io.js'
 import { initTelegramBot } from './services/telegramService.js'
@@ -46,6 +47,7 @@ app.use('/api/analytics', analyticsRouter)
 app.use('/api/telegram', telegramRouter)
 app.use('/api/classes', classesRouter)
 app.use('/api/tests', testsRouter)
+app.use('/api/gestures', gesturesRouter)
 
 // Health check
 app.get('/api/health', (_req, res) => {

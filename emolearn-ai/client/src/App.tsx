@@ -21,12 +21,16 @@ import NotificationToast from './components/NotificationToast'
 import { useEffect } from 'react'
 import { useUserStore } from './store/userStore'
 import { registerUser } from './lib/socket'
+import { ML_CLASSIFIER } from './lib/mlClassifier'
 
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, role, id } = useUserStore()
 
   useEffect(() => {
-    if (isLoggedIn && id) registerUser(id)
+    if (isLoggedIn && id) {
+      registerUser(id)
+      ML_CLASSIFIER.setUserId(id)
+    }
   }, [isLoggedIn, id])
 
   if (!isLoggedIn) {

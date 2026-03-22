@@ -54,15 +54,15 @@ export default function AITrainerModal({ onClose }: Props) {
     }, 60)
   }
 
-  const finishTraining = (sequence: Landmark[][][]) => {
-     ML_CLASSIFIER.addSequenceExample(selectedWord, sequence)
+  const finishTraining = async (sequence: Landmark[][][]) => {
+     await ML_CLASSIFIER.addSequenceExample(selectedWord, sequence)
      setTrainedCount(prev => prev + 1)
      setIsRecording(false)
      setProgress(0)
   }
 
-  const handleClear = () => {
-    ML_CLASSIFIER.clearExamples(selectedWord)
+  const handleClear = async () => {
+    await ML_CLASSIFIER.clearExamples(selectedWord)
     setTrainedCount(0)
   }
 
