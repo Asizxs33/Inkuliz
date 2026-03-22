@@ -46,6 +46,7 @@ export default function Dictionary() {
   // Modals
   const [practiceWord, setPracticeWord] = useState<DictionaryWord | null>(null)
   const [showQuiz, setShowQuiz] = useState(false)
+  const [previewWord, setPreviewWord] = useState<DictionaryWord | null>(null)
 
   // Bookmarks — localStorage as cache, server as source of truth
   const [bookmarks, setBookmarks] = useState<Set<string>>(() => {
@@ -333,8 +334,8 @@ export default function Dictionary() {
               </div>
               <p className="text-text-secondary text-sm leading-relaxed mt-4 mb-5">{wordOfTheDay.description}</p>
               <div className="flex gap-3 flex-wrap">
-                <button 
-                  onClick={() => { handleTranslateToGesture(wordOfTheDay.wordKz); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                <button
+                  onClick={() => setPreviewWord(wordOfTheDay)}
                   className="btn-primary px-6 py-3 flex items-center gap-2 font-bold"
                 >
                   <Play size={16} /> Көру
@@ -430,8 +431,8 @@ export default function Dictionary() {
                   <h4 className="font-bold text-text-primary">{word.wordKz}</h4>
                   <p className="text-xs text-text-muted mb-3">{word.transliteration}</p>
                   <div className="flex gap-2">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleTranslateToGesture(word.wordKz); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setPreviewWord(word) }}
                       className="flex-1 py-2 border border-rose text-rose rounded-lg text-xs font-bold hover:bg-rose hover:text-white transition-colors flex items-center justify-center gap-1"
                     >
                       <Play size={12} /> Көру
@@ -464,6 +465,83 @@ export default function Dictionary() {
       )}
       {showQuiz && (
         <FlashcardQuiz onClose={() => setShowQuiz(false)} />
+      )}
+      {previewWord && (
+        <motion.div
+          key="gesture-preview"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setPreviewWord(null)}
+          className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.85, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.85, opacity: 0, y: 20 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-bg-card rounded-3xl shadow-2xl border border-border-soft w-full max-w-sm overflow-hidden"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-5 pb-3">
+              <div>
+                <h2 className="text-2xl font-black text-text-primary">{previewWord.wordKz}</h2>
+                <p className="text-sm text-text-muted">{previewWord.transliteration}</p>
+              </div>
+              <button
+                onClick={() => setPreviewWord(null)}
+                className="w-9 h-9 rounded-full bg-bg-secondary flex items-center justify-center hover:bg-border-soft transition-colors"
+              >
+                <span className="text-text-muted text-lg font-bold leading-none">✕</span>
+              </button>
+            </div>
+
+            {/* Gesture Display */}
+            <div className="mx-6 mb-4 rounded-2xl bg-bg-secondary flex items-center justify-center min-h-[220px] overflow-hidden">
+              {previewWord.gifUrl ? (
+                <img src={previewWord.gifUrl} alt={previewWord.wordKz} className="w-full h-[220px] object-contain" />
+              ) : (
+                <motion.div
+                  animate={getAnimationProps(previewWord.animation).animate}
+                  transition={getAnimationProps(previewWord.animation).transition}
+                  className="text-[110px] drop-shadow-lg select-none"
+                >
+                  {previewWord.emoji}
+                </motion.div>
+              )}
+            </div>
+
+            {/* Gesture name + description */}
+            <div className="px-6 pb-4 flex flex-col gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="bg-plum/10 text-plum text-sm font-bold px-4 py-1.5 rounded-full border border-plum/20">{previewWord.gesture}</span>
+                <span className="text-xs font-bold px-3 py-1.5 rounded-full text-white" style={{ backgroundColor: previewWord.color }}>{previewWord.difficulty}</span>
+              </div>
+              {previewWord.description && (
+                <p className="text-sm text-text-secondary leading-relaxed">{previewWord.description}</p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={() => { setPreviewWord(null); setPracticeWord(previewWord) }}
+                className="flex-1 py-3 bg-gradient-to-r from-plum to-rose text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+              >
+                <Camera size={15} /> Жаттығу
+              </button>
+              <button
+                onClick={() => { toggleBookmark(previewWord.id); setPreviewWord(null) }}
+                className="w-12 py-3 border border-border-soft rounded-xl flex items-center justify-center hover:border-plum transition-colors"
+              >
+                {bookmarks.has(previewWord.id)
+                  ? <BookmarkCheck size={18} className="text-plum" />
+                  : <Bookmark size={18} className="text-text-muted" />}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
       )}
     </AnimatePresence>
     </>
