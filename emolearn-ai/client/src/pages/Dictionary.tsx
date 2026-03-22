@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react'
 import { DICTIONARY_DATA, DICTIONARY_CATEGORIES, DictionaryWord } from '../lib/dictionaryData'
 import WordPracticeModal from '../components/WordPracticeModal'
 import FlashcardQuiz from '../components/FlashcardQuiz'
+import { useUserStore } from '../store/userStore'
+
+const API_BASE = (import.meta as any).env?.VITE_API_URL || ''
 
 const difficultyTabs = ['Барлығы', 'ОҢАЙ', 'ОРТАША', 'ҚИЫН']
 
@@ -23,16 +26,17 @@ const getAnimationProps = (anim?: string) => {
 }
 
 export default function Dictionary() {
+  const { id: userId } = useUserStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('all')
   const [activeDifficulty, setActiveDifficulty] = useState('Барлығы')
-  
+
   // Word of the day
   const [wordOfTheDay, setWordOfTheDay] = useState(DICTIONARY_DATA[0])
   useEffect(() => {
     setWordOfTheDay(DICTIONARY_DATA[Math.floor(Math.random() * DICTIONARY_DATA.length)])
   }, [])
-  
+
   // Translator states
   const [textInput, setTextInput] = useState('')
   const [isPlaying, setIsPlaying] = useState(false)
@@ -43,7 +47,7 @@ export default function Dictionary() {
   const [practiceWord, setPracticeWord] = useState<DictionaryWord | null>(null)
   const [showQuiz, setShowQuiz] = useState(false)
 
-  // Bookmarks
+  // Bookmarks — localStorage as cache, server as source of truth
   const [bookmarks, setBookmarks] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem('emolearn_bookmarks')
@@ -51,7 +55,24 @@ export default function Dictionary() {
     } catch { return new Set() }
   })
 
+  // Sync from server on login
+  useEffect(() => {
+    if (!userId) return
+    fetch(`${API_BASE}/api/bookmarks/${userId}`)
+      .then(r => r.json())
+      .then(({ wordIds }: { wordIds: string[] }) => {
+        if (!wordIds?.length) return
+        setBookmarks(prev => {
+          const merged = new Set([...prev, ...wordIds])
+          localStorage.setItem('emolearn_bookmarks', JSON.stringify([...merged]))
+          return merged
+        })
+      })
+      .catch(() => {})
+  }, [userId])
+
   const toggleBookmark = (id: string) => {
+    const wasBookmarked = bookmarks.has(id)
     setBookmarks(prev => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -59,6 +80,17 @@ export default function Dictionary() {
       localStorage.setItem('emolearn_bookmarks', JSON.stringify([...next]))
       return next
     })
+    if (userId) {
+      if (wasBookmarked) {
+        fetch(`${API_BASE}/api/bookmarks/${userId}/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {})
+      } else {
+        fetch(`${API_BASE}/api/bookmarks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, wordId: id }),
+        }).catch(() => {})
+      }
+    }
   }
 
   const handleTranslateToGesture = (overrideText?: string) => {

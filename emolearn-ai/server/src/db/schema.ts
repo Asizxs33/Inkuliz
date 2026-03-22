@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, integer, real, boolean, timestamp, jsonb, primaryKey } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, integer, real, boolean, timestamp, jsonb, primaryKey, unique } from 'drizzle-orm/pg-core'
 
 export const classes = pgTable('classes', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -124,6 +124,16 @@ export const testResults = pgTable('test_results', {
   total: integer('total').notNull(),
   completed_at: timestamp('completed_at').defaultNow(),
 })
+
+// User bookmarked dictionary words (synced across devices)
+export const bookmarks = pgTable('bookmarks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  user_id: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  word_id: varchar('word_id', { length: 100 }).notNull(),
+  created_at: timestamp('created_at').defaultNow(),
+}, (t) => ({
+  uniq: unique().on(t.user_id, t.word_id),
+}))
 
 // User-trained gesture sequences (synced across devices)
 export const gestureModels = pgTable('gesture_models', {
