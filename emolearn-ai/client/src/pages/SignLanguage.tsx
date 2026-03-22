@@ -23,6 +23,22 @@ interface HandsResults {
 
 const GESTURE_HISTORY = new GestureHistory(15)
 
+function RemoteVideoCard({ stream }: { stream: MediaStream }) {
+  const ref = useRef<HTMLVideoElement>(null)
+  useEffect(() => {
+    if (ref.current) ref.current.srcObject = stream
+  }, [stream])
+  return (
+    <div className="aspect-video bg-[#0d0d1a] rounded-2xl overflow-hidden border border-white/10 relative">
+      <video ref={ref} className="w-full h-full object-cover" autoPlay playsInline />
+      <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur-sm px-2 py-1 rounded text-[10px] text-white font-bold flex items-center gap-1">
+        <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+        Сұхбаттасушы
+      </div>
+    </div>
+  )
+}
+
 const FINGER_COLORS = ['#E8507A', '#6B2D5E', '#F9C5D5', '#B05B8A', '#E8507A']
 const CONNECTIONS = [
   [0, 1], [1, 2], [2, 3], [3, 4],
@@ -88,8 +104,9 @@ export default function SignLanguage() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const ekgRef = useRef<HTMLCanvasElement>(null)
-  const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
-  const remoteVideoRef = useRef<HTMLVideoElement>(null)
+  const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map())
+  const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map())
+  const globalStreamRef = useRef(globalStream)
 
   const ekgGenRef = useRef(new EKGVisualizer())
   const particlesRef = useRef<Array<{x: number, y: number, life: number, color: string}>>([])
@@ -313,78 +330,86 @@ export default function SignLanguage() {
     }
   }, [isInLiveRoom])
 
-  // WebRTC Logic
-  useEffect(() => {
-    if (!isInLiveRoom) return;
+  useEffect(() => { globalStreamRef.current = globalStream }, [globalStream])
 
-    const pc = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    });
-    peerConnectionRef.current = pc;
-
-    if (globalStream) {
-      globalStream.getTracks().forEach(track => pc.addTrack(track, globalStream));
-    }
-
+  const createPeerConnection = useCallback((peerId: string): RTCPeerConnection => {
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
+    globalStreamRef.current?.getTracks().forEach(track => pc.addTrack(track, globalStreamRef.current!))
     pc.ontrack = (event) => {
-      if (remoteVideoRef.current && event.streams[0]) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-      }
-    };
-
+      if (event.streams[0]) setRemoteStreams(prev => new Map(prev).set(peerId, event.streams[0]))
+    }
     pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        emitIceCandidate(event.candidate);
-      }
-    };
+      if (event.candidate) emitIceCandidate(peerId, event.candidate)
+    }
+    peerConnectionsRef.current.set(peerId, pc)
+    return pc
+  }, [])
 
-    const cleanupUserJoined = onWebRTCEvent('user-joined', async () => {
-      try {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        emitWebRTCOffer(offer);
-      } catch (e) {
-        console.error('Error creating offer', e);
-      }
-    });
+  const removePeer = useCallback((peerId: string) => {
+    peerConnectionsRef.current.get(peerId)?.close()
+    peerConnectionsRef.current.delete(peerId)
+    setRemoteStreams(prev => { const n = new Map(prev); n.delete(peerId); return n })
+  }, [])
 
-    const cleanupOffer = onWebRTCEvent('offer', async ({ offer }) => {
-      try {
-        await pc.setRemoteDescription(new RTCSessionDescription(offer));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        emitWebRTCAnswer(answer);
-      } catch (e) {
-        console.error('Error handling offer', e);
-      }
-    });
+  // WebRTC Logic — multi-peer mesh
+  useEffect(() => {
+    if (!isInLiveRoom) return
 
-    const cleanupAnswer = onWebRTCEvent('answer', async ({ answer }) => {
-      try {
-        await pc.setRemoteDescription(new RTCSessionDescription(answer));
-      } catch (e) {
-        console.error('Error handling answer', e);
+    // Existing participants when we join
+    const cleanupExisting = onWebRTCEvent('existing-users', async ({ users }: { users: string[] }) => {
+      for (const peerId of users) {
+        const pc = createPeerConnection(peerId)
+        try {
+          const offer = await pc.createOffer()
+          await pc.setLocalDescription(offer)
+          emitWebRTCOffer(peerId, offer)
+        } catch (e) { console.error('Error creating offer to existing peer', e) }
       }
-    });
+    })
 
-    const cleanupIce = onWebRTCEvent('ice-candidate', async ({ candidate }) => {
+    // New participant joined after us — they will send us an offer
+    const cleanupUserJoined = onWebRTCEvent('user-joined', ({ userId: peerId }: { userId: string }) => {
+      if (!peerConnectionsRef.current.has(peerId)) createPeerConnection(peerId)
+    })
+
+    const cleanupOffer = onWebRTCEvent('offer', async ({ offer, senderId }: any) => {
+      let pc = peerConnectionsRef.current.get(senderId)
+      if (!pc) pc = createPeerConnection(senderId)
       try {
-        if (candidate) {
-          await pc.addIceCandidate(new RTCIceCandidate(candidate));
-        }
-      } catch (e) {
-        console.error('Error handling ice candidate', e);
+        await pc.setRemoteDescription(new RTCSessionDescription(offer))
+        const answer = await pc.createAnswer()
+        await pc.setLocalDescription(answer)
+        emitWebRTCAnswer(senderId, answer)
+      } catch (e) { console.error('Error handling offer', e) }
+    })
+
+    const cleanupAnswer = onWebRTCEvent('answer', async ({ answer, senderId }: any) => {
+      const pc = peerConnectionsRef.current.get(senderId)
+      if (!pc) return
+      try { await pc.setRemoteDescription(new RTCSessionDescription(answer)) }
+      catch (e) { console.error('Error handling answer', e) }
+    })
+
+    const cleanupIce = onWebRTCEvent('ice-candidate', async ({ candidate, senderId }: any) => {
+      const pc = peerConnectionsRef.current.get(senderId)
+      if (pc && candidate) {
+        try { await pc.addIceCandidate(new RTCIceCandidate(candidate)) }
+        catch (e) { console.error('Error handling ice candidate', e) }
       }
-    });
+    })
+
+    const cleanupUserLeft = onWebRTCEvent('user-left', ({ userId: peerId }: { userId: string }) => {
+      removePeer(peerId)
+    })
 
     return () => {
-      pc.close();
-      cleanupUserJoined();
-      cleanupOffer();
-      cleanupAnswer();
-      cleanupIce();
-    };
-  }, [isInLiveRoom, globalStream]);
+      cleanupExisting(); cleanupUserJoined(); cleanupOffer()
+      cleanupAnswer(); cleanupIce(); cleanupUserLeft()
+      peerConnectionsRef.current.forEach(pc => pc.close())
+      peerConnectionsRef.current.clear()
+      setRemoteStreams(new Map())
+    }
+  }, [isInLiveRoom, createPeerConnection, removePeer])
 
   const handleSendManualChat = (e: React.FormEvent) => {
     e.preventDefault();
@@ -644,17 +669,17 @@ export default function SignLanguage() {
              <span className="text-xs text-text-muted">{chatMessages.length} хабарлама</span>
           </div>
           
-          {/* Remote Video Wrapper */}
-          <div className="w-full aspect-video bg-[#0d0d1a] rounded-2xl overflow-hidden border border-white/10 relative shrink-0 shadow-lg">
-            <video
-              ref={remoteVideoRef}
-              className="w-full h-full object-cover"
-              autoPlay playsInline
-            />
-            <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur-sm px-2 py-1 rounded text-[10px] text-white font-bold flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-              Сұхбаттасушы
-            </div>
+          {/* Remote Videos — one card per participant */}
+          <div className={`w-full grid gap-2 shrink-0 ${remoteStreams.size > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {remoteStreams.size === 0 ? (
+              <div className="aspect-video bg-[#0d0d1a] rounded-2xl border border-white/10 flex items-center justify-center">
+                <p className="text-white/30 text-xs">Қатысушы күтілуде...</p>
+              </div>
+            ) : (
+              [...remoteStreams.entries()].map(([peerId, stream]) => (
+                <RemoteVideoCard key={peerId} stream={stream} />
+              ))
+            )}
           </div>
           
           <div className="flex-1 bg-bg-secondary/50 rounded-2xl p-4 overflow-y-auto flex flex-col gap-4 border border-white/5">

@@ -104,9 +104,13 @@ export function setupSocket(io: Server) {
 
     // Live Chat Room for Sign Language <-> Text matching
     socket.on('join_live_room', () => {
+      // Send list of already-present peers BEFORE joining, so we don't include ourselves
+      const existingUsers = [...(io.sockets.adapter.rooms.get('live_room') || [])]
+      socket.emit('webrtc:existing-users', { users: existingUsers })
+
       socket.join('live_room')
-      console.log(`💬 User joined Live Chat Room: ${socket.id}`)
       socket.to('live_room').emit('webrtc:user-joined', { userId: socket.id })
+      console.log(`💬 User joined Live Chat Room: ${socket.id}`)
     })
 
     socket.on('live_chat_message', (data: {
@@ -149,17 +153,24 @@ export function setupSocket(io: Server) {
       }
     })
 
-    // WebRTC Signaling Events
-    socket.on('webrtc:offer', (data) => {
-      socket.to('live_room').emit('webrtc:offer', { offer: data.offer, senderId: socket.id })
+    // WebRTC Signaling Events — targeted to a specific peer
+    socket.on('webrtc:offer', (data: { offer: RTCSessionDescriptionInit; targetId: string }) => {
+      socket.to(data.targetId).emit('webrtc:offer', { offer: data.offer, senderId: socket.id })
     })
 
-    socket.on('webrtc:answer', (data) => {
-      socket.to('live_room').emit('webrtc:answer', { answer: data.answer, senderId: socket.id })
+    socket.on('webrtc:answer', (data: { answer: RTCSessionDescriptionInit; targetId: string }) => {
+      socket.to(data.targetId).emit('webrtc:answer', { answer: data.answer, senderId: socket.id })
     })
 
-    socket.on('webrtc:ice-candidate', (data) => {
-      socket.to('live_room').emit('webrtc:ice-candidate', { candidate: data.candidate, senderId: socket.id })
+    socket.on('webrtc:ice-candidate', (data: { candidate: RTCIceCandidateInit; targetId: string }) => {
+      socket.to(data.targetId).emit('webrtc:ice-candidate', { candidate: data.candidate, senderId: socket.id })
+    })
+
+    // Notify live_room peers before disconnect so they can clean up
+    socket.on('disconnecting', () => {
+      if (socket.rooms.has('live_room')) {
+        socket.to('live_room').emit('webrtc:user-left', { userId: socket.id })
+      }
     })
 
     socket.on('disconnect', () => {

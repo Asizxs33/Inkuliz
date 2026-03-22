@@ -110,16 +110,20 @@ export function onTestNotification(callback: (data: { id: string; title: string 
 }
 
 // WebRTC Signaling
-export function emitWebRTCOffer(offer: RTCSessionDescriptionInit) {
-  getSocket().emit('webrtc:offer', { offer })
+export function getSocketId(): string {
+  return getSocket().id || ''
 }
 
-export function emitWebRTCAnswer(answer: RTCSessionDescriptionInit) {
-  getSocket().emit('webrtc:answer', { answer })
+export function emitWebRTCOffer(targetId: string, offer: RTCSessionDescriptionInit) {
+  getSocket().emit('webrtc:offer', { offer, targetId })
 }
 
-export function emitIceCandidate(candidate: RTCIceCandidate) {
-  getSocket().emit('webrtc:ice-candidate', { candidate })
+export function emitWebRTCAnswer(targetId: string, answer: RTCSessionDescriptionInit) {
+  getSocket().emit('webrtc:answer', { answer, targetId })
+}
+
+export function emitIceCandidate(targetId: string, candidate: RTCIceCandidate) {
+  getSocket().emit('webrtc:ice-candidate', { candidate, targetId })
 }
 
 export function onWebRTCEvent(event: string, callback: (data: any) => void) {
