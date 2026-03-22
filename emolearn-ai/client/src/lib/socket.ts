@@ -109,6 +109,12 @@ export function onTestNotification(callback: (data: { id: string; title: string 
   return () => { socket.off('test:new', callback) }
 }
 
+export function onTestSubmitted(callback: (data: { studentName: string; testTitle: string; testId: string; score: number; total: number }) => void) {
+  const socket = getSocket()
+  socket.on('test:submitted', callback)
+  return () => { socket.off('test:submitted', callback) }
+}
+
 // WebRTC Signaling
 export function getSocketId(): string {
   return getSocket().id || ''

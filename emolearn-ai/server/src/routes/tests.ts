@@ -132,6 +132,15 @@ testsRouter.post('/:id/submit', async (req, res) => {
       })
       .returning()
 
+    // Notify teacher in real-time
+    getIo()?.to(`user:${test.teacher_id}`).emit('test:submitted', {
+      studentName: student_name || 'Студент',
+      testTitle: test.title,
+      testId: test.id,
+      score,
+      total: questions.length,
+    })
+
     res.json({ result, score, total: questions.length })
   } catch (error) {
     console.error('Submit test error:', error)
