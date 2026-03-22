@@ -120,7 +120,7 @@ export function Sidebar() {
 
       {/* ── MOBILE BOTTOM NAV ── */}
       <nav
-        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-border-soft"
+        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-bg-card border-t border-border-soft"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="flex items-stretch h-14">
@@ -189,7 +189,7 @@ export function Sidebar() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="md:hidden fixed bottom-0 inset-x-0 z-[70] bg-white rounded-t-2xl"
+              className="md:hidden fixed bottom-0 inset-x-0 z-[70] bg-bg-card rounded-t-2xl border-t border-border-soft"
               style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             >
               <div className="flex items-center justify-between px-5 pt-4 pb-2">

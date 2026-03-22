@@ -155,9 +155,9 @@ export function Navbar() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className="absolute right-0 top-full mt-2 w-[min(320px,calc(100vw-1.5rem))] bg-white rounded-2xl shadow-2xl border border-border-soft overflow-hidden"
+                className="absolute right-0 top-full mt-2 w-[min(320px,calc(100vw-1.5rem))] bg-bg-card rounded-2xl shadow-2xl border border-border-soft overflow-hidden"
               >
-                <div className="p-4 border-b border-border-soft flex justify-between items-center bg-gray-50/50">
+                <div className="p-4 border-b border-border-soft flex justify-between items-center bg-bg-secondary">
                   <h3 className="font-bold text-text-primary flex items-center gap-2">
                     <Bell size={16} className="text-plum" /> Хабарландырулар
                   </h3>
@@ -226,7 +226,7 @@ export function Navbar() {
                                       setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true, message: 'Шақырудан бас тартылды ❌' } : n))
                                     } catch {}
                                   }}
-                                  className="bg-gray-100 text-text-muted hover:bg-gray-200 text-[10px] px-3 py-1 font-bold rounded-lg transition-colors"
+                                  className="bg-bg-secondary text-text-muted hover:bg-border-soft text-[10px] px-3 py-1 font-bold rounded-lg transition-colors"
                                 >
                                   Бас тарту
                                 </button>
@@ -247,10 +247,30 @@ export function Navbar() {
         {/* Dark/Light mode toggle */}
         <button
           onClick={toggle}
-          className="w-10 h-10 rounded-xl bg-plum-pale flex items-center justify-center hover:bg-soft-pink transition-colors"
           title={isDark ? 'Жарық режим' : 'Қараңғы режим'}
+          className="relative flex items-center w-14 h-7 rounded-full border-2 transition-all duration-300 shrink-0"
+          style={{
+            background: isDark
+              ? 'linear-gradient(135deg, #2d1f4e, #4a2d6a)'
+              : 'linear-gradient(135deg, #f0d9ff, #e8c5f5)',
+            borderColor: isDark ? '#6d3d9e' : '#d4a8e8',
+          }}
         >
-          {isDark ? <Sun size={18} className="text-plum" /> : <Moon size={18} className="text-plum" />}
+          <motion.div
+            layout
+            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+            className="absolute flex items-center justify-center w-5 h-5 rounded-full shadow-md"
+            style={{
+              left: isDark ? 'calc(100% - 1.5rem)' : '0.15rem',
+              background: isDark
+                ? 'linear-gradient(135deg, #a855f7, #7c3aed)'
+                : 'linear-gradient(135deg, #f7c948, #f59e0b)',
+            }}
+          >
+            {isDark
+              ? <Moon size={11} className="text-white" />
+              : <Sun size={11} className="text-white" />}
+          </motion.div>
         </button>
 
         {/* Settings — hidden on mobile (accessible via Profile in bottom nav) */}

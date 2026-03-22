@@ -64,10 +64,10 @@ emolearn-ai/
 │       ├── pages/       # Route-level components (14 pages)
 │       ├── components/  # Shared UI + GlobalBiometrics overlay
 │       ├── lib/         # ML utilities (emotionDetector, gestureRecognizer, rppg)
-│       └── store/       # Zustand stores (userStore, biometricStore, lessonStore)
+│       └── store/       # Zustand stores (userStore, biometricStore, lessonStore, themeStore)
 ├── server/          # Express + Socket.IO + Drizzle ORM
 │   └── src/
-│       ├── routes/      # 8 Express routers under /api/*
+│       ├── routes/      # 10 Express routers under /api/*
 │       ├── db/          # schema.ts + index.ts (Neon connection)
 │       ├── services/    # OpenAI, Telegram, predictions
 │       ├── socket/      # Socket.IO event handlers (handlers.ts)
@@ -98,8 +98,11 @@ Key event groups:
 - `biometric:update` — stream emotion/BPM/cognitive data from student to teacher
 - `class_chat:*` — class-scoped chat
 - `live_chat_message` — live room with sign ↔ text
-- `webrtc:*` — peer-to-peer signaling (offer, answer, ice-candidate)
+- `webrtc:*` — mesh multi-peer signaling (offer, answer, ice-candidate); each signal includes `targetId` to route to a specific socket
 - `notification:send/receive` — in-app notifications
+- `test:submitted` — emitted to `user:{teacher_id}` room when a student submits a test
+
+WebRTC uses a full-mesh topology: when a user joins `live_room`, the server sends `webrtc:existing-users` with all current peer socket IDs, and the joiner creates offers to each. Signals are routed directly to `targetId` rather than broadcast.
 
 ### ML Pipeline (client-side, privacy-first)
 
@@ -120,7 +123,10 @@ Schema in `server/src/db/schema.ts`. All IDs are UUIDs. Key tables:
 - `studentProgress` → `lessons` + `users` — tracks completion, score, time_spent
 - `signWords` — Kazakh/Russian word pairs with `landmarks` JSONB for gesture matching
 - `alerts` — link teacher and student for drowsiness/stress notifications
-- `tests` / `testResults` — teacher-created tests with JSONB questions; student answers auto-scored
+- `tests` / `testResults` — teacher-created tests with JSONB questions; student answers auto-scored; `teacher_comment` column for per-result feedback
+- `assignments` — links a test to a class with a deadline; students see assigned tests with overdue detection
+- `bookmarks` — user + signWord M2M with unique constraint; synced cross-device via `/api/bookmarks`
+- `gestureModels` — per-user custom gesture training data (JSONB landmarks) synced via `/api/gestures`
 
 Analytics endpoints may return mock data when no real biometric logs exist yet.
 
@@ -139,3 +145,7 @@ Analytics endpoints may return mock data when no real biometric logs exist yet.
 - Audio files must be imported through Vite (not direct URL strings) for correct MIME types and Safari compatibility; use `.m4a` format for Apple devices
 - CORS `allowedOrigins` in `server/src/index.ts` must include both production domains and `localhost:5173`
 - Content is bilingual: Kazakh (`kz`) and Russian (`ru`)
+- Dark mode uses `darkMode: 'class'` in Tailwind; CSS variables defined in `globals.css` under `:root` (light) and `.dark` (dark); `themeStore.ts` toggles the class on `document.documentElement` and persists to `localStorage` under key `feelflow-theme`
+- `drizzle-kit` may fail with `bad interpreter` error on some systems — use `node node_modules/drizzle-kit/bin.cjs push` as a fallback
+- Sleep/drowsiness alarm uses `play()`/`pause()` (not volume toggling) for iOS Safari compatibility; threshold is 20 consecutive seconds of drowsy state
+- `GlobalBiometrics.tsx` uses `useRef` to track `isSleeping` state inside animation loops to avoid stale closure issues
