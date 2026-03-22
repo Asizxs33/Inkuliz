@@ -113,6 +113,7 @@ export default function GlobalBiometrics() {
   
   // Sleep Detection
   const [isSleeping, setIsSleeping] = useState(false)
+  const isSleepingRef = useRef(false)
   const sleepCounterRef = useRef<number>(0)
   const awakeCounterRef = useRef<number>(0)
 
@@ -159,15 +160,21 @@ export default function GlobalBiometrics() {
     }
   }
 
-  // Trigger alarm by toggling VOLUME (audio is already playing silently)
+  // Keep ref in sync so the loop can read current value without stale closure
+  useEffect(() => { isSleepingRef.current = isSleeping }, [isSleeping])
+
+  // Trigger alarm: play() when sleeping, pause() when awake
+  // Using play/pause instead of volume so iOS Safari actually stops the audio
   useEffect(() => {
     if (!audioRef.current || !soundEnabled) return
-    
     if (isSleeping) {
       try { audioRef.current.currentTime = 0 } catch(e) {}
-      audioRef.current.volume = 1
+      audioRef.current.play().catch(e => console.warn('Alarm play failed:', e))
     } else {
-      audioRef.current.volume = 0.0001
+      try {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
+      } catch(e) {}
     }
   }, [isSleeping, soundEnabled])
 
@@ -328,19 +335,22 @@ export default function GlobalBiometrics() {
               isStressRef.current = ['АШУЛЫ', 'ҚОРЫҚҚАН', 'ЖИІРКЕНГЕН'].includes(emotionResult.emotionKz)
               
               // Sleep Detection Logic
-              if (
-                emotionResult.isEyesClosed ||
-                ['ҰЙҚЫДА', 'ШАРШАҒАН', 'ЗЕРІККЕН', 'БЕЙҚАМ', 'ЖАЛЫҚҚАН'].includes(emotionResult.emotionKz)
-              ) {
+              // Primary signal: isEyesClosed (EAR-based, most reliable)
+              // Secondary: known drowsy emotion labels
+              const isDrowsy = emotionResult.isEyesClosed ||
+                ['ҰЙҚЫДА', 'ШАРШАҒАН'].includes(emotionResult.emotionKz)
+
+              if (isDrowsy) {
                 awakeCounterRef.current = 0
                 sleepCounterRef.current += 1
-                if (sleepCounterRef.current >= 4 && !isSleeping) {
-                   setIsSleeping(true)
+                // Trigger after 20 consecutive drowsy seconds
+                if (sleepCounterRef.current >= 20 && !isSleepingRef.current) {
+                  setIsSleeping(true)
                 }
               } else {
                 sleepCounterRef.current = 0
-                // Auto-dismiss alarm if eyes have been open for ~10 seconds
-                if (isSleeping) {
+                // Auto-dismiss alarm after 10 consecutive awake seconds
+                if (isSleepingRef.current) {
                   awakeCounterRef.current += 1
                   if (awakeCounterRef.current >= 10) {
                     setIsSleeping(false)
@@ -594,11 +604,19 @@ export default function GlobalBiometrics() {
               Сіздің ұйықтап немесе сабаққа қарамай отырғаныңыз байқалды.
             </p>
             
-            <button 
+            <button
               onClick={() => {
                 setIsSleeping(false)
+                isSleepingRef.current = false
                 sleepCounterRef.current = 0
                 awakeCounterRef.current = 0
+                // Force stop audio immediately on button click
+                try {
+                  if (audioRef.current) {
+                    audioRef.current.pause()
+                    audioRef.current.currentTime = 0
+                  }
+                } catch(e) {}
               }}
               className="bg-rose text-white text-xl font-black px-12 py-6 rounded-full shadow-[0_0_40px_rgba(232,80,122,0.6)] hover:scale-105 active:scale-95 transition-all"
             >
