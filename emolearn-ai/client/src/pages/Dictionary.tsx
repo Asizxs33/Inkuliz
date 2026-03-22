@@ -147,6 +147,15 @@ export default function Dictionary() {
 
   const learnedCount = bookmarks.size
 
+  const categoryProgress = DICTIONARY_CATEGORIES
+    .filter(c => c.id !== 'all' && c.id !== 'bookmarks')
+    .map(cat => {
+      const total = DICTIONARY_DATA.filter(w => w.category === cat.id).length
+      const learned = DICTIONARY_DATA.filter(w => w.category === cat.id && bookmarks.has(w.id)).length
+      return { ...cat, total, learned, pct: total > 0 ? Math.round((learned / total) * 100) : 0 }
+    })
+    .filter(c => c.total > 0)
+
   return (
     <>
     <div className="flex flex-col lg:flex-row gap-6 animate-fade-in h-full">
@@ -359,6 +368,28 @@ export default function Dictionary() {
             </div>
           </div>
         </motion.div>
+
+        {/* Category Progress */}
+        {activeCategory === 'all' && !searchQuery && (
+          <div className="card">
+            <p className="text-xs font-bold text-text-muted uppercase tracking-widest mb-3">Санат бойынша прогресс</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {categoryProgress.map(cat => (
+                <div key={cat.id} className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-text-primary">{cat.label}</span>
+                    <span className="text-xs font-bold text-plum">{cat.pct}%</span>
+                  </div>
+                  <div className="h-2 bg-bg-secondary rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-plum to-rose rounded-full transition-all duration-500"
+                      style={{ width: `${cat.pct}%` }} />
+                  </div>
+                  <span className="text-[10px] text-text-muted">{cat.learned}/{cat.total}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Word Grid */}
         <div>

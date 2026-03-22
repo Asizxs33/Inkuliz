@@ -1,6 +1,7 @@
-import { Bell, Settings, X, CheckCircle2, AlertCircle, Info } from 'lucide-react'
+import { Bell, Settings, X, CheckCircle2, AlertCircle, Info, Moon, Sun } from 'lucide-react'
 import { useUserStore } from '../../store/userStore'
 import { useBiometricStore } from '../../store/biometricStore'
+import { useThemeStore } from '../../store/themeStore'
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -20,6 +21,7 @@ interface NotificationItem {
 export function Navbar() {
   const { name, id: userId, role } = useUserStore()
   const { isCameraEnabled } = useBiometricStore()
+  const { isDark, toggle } = useThemeStore()
   const navigate = useNavigate()
   
   const [showNotifications, setShowNotifications] = useState(false)
@@ -241,6 +243,15 @@ export function Navbar() {
             )}
           </AnimatePresence>
         </div>
+
+        {/* Dark/Light mode toggle */}
+        <button
+          onClick={toggle}
+          className="w-10 h-10 rounded-xl bg-plum-pale flex items-center justify-center hover:bg-soft-pink transition-colors"
+          title={isDark ? 'Жарық режим' : 'Қараңғы режим'}
+        >
+          {isDark ? <Sun size={18} className="text-plum" /> : <Moon size={18} className="text-plum" />}
+        </button>
 
         {/* Settings — hidden on mobile (accessible via Profile in bottom nav) */}
         <button

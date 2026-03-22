@@ -20,6 +20,7 @@ import GlobalBiometrics from './components/GlobalBiometrics'
 import NotificationToast from './components/NotificationToast'
 import { useEffect } from 'react'
 import { useUserStore } from './store/userStore'
+import { useThemeStore } from './store/themeStore'
 import { registerUser } from './lib/socket'
 import { ML_CLASSIFIER } from './lib/mlClassifier'
 
@@ -65,6 +66,11 @@ function LandingOrApp() {
 }
 
 export default function App() {
+  const isDark = useThemeStore(s => s.isDark)
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark)
+  }, [isDark])
+
   return (
     <BrowserRouter>
       <NotificationToast />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FileText, CheckCircle2, XCircle, Clock, Trophy, ChevronRight, RotateCcw, Medal } from 'lucide-react'
+import { FileText, CheckCircle2, XCircle, Clock, Trophy, ChevronRight, RotateCcw, Medal, ClipboardList } from 'lucide-react'
 import { useUserStore } from '../store/userStore'
 
 const API = (path: string) => (import.meta.env.VITE_API_URL || '') + path
@@ -16,6 +16,7 @@ export default function Tests() {
   const [tests, setTests] = useState<Test[]>([])
   const [loading, setLoading] = useState(true)
   const [myResults, setMyResults] = useState<Record<string, MyResult>>({})
+  const [assignments, setAssignments] = useState<{assignment: {id: string, deadline: string}, test: {id: string, title: string, questions: any[], status: string}}[]>([])
 
   const [screen, setScreen] = useState<Screen>('list')
   const [activeTest, setActiveTest] = useState<Test | null>(null)
@@ -47,6 +48,13 @@ export default function Tests() {
           if (item.status === 'fulfilled' && item.value.result) map[item.value.id] = item.value.result
         })
         setMyResults(map)
+      }
+
+      if (studentId) {
+        fetch(API(`/api/assignments/student/${studentId}`))
+          .then(r => r.json())
+          .then(d => setAssignments(d.assignments || []))
+          .catch(() => {})
       }
     } catch (err) {
       console.error('Fetch tests error:', err)
@@ -268,52 +276,97 @@ export default function Tests() {
         <div className="card p-16 text-center">
           <div className="w-8 h-8 border-2 border-plum/40 border-t-plum rounded-full animate-spin mx-auto" />
         </div>
-      ) : tests.length === 0 ? (
-        <div className="card p-16 text-center">
-          <FileText size={48} className="text-text-muted mx-auto mb-4 opacity-30" />
-          <h3 className="text-lg font-bold text-text-muted">Тесттер жоқ</h3>
-          <p className="text-sm text-text-muted mt-1">Мұғалім тест жасағанда осы жерде пайда болады</p>
-        </div>
       ) : (
-        <div className="grid gap-4">
-          {tests.map(test => {
-            const done = myResults[test.id]
-            const pass = done && Math.round((done.score / done.total) * 100) >= 70
-            return (
-              <motion.div key={test.id} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="card flex items-center gap-3">
-                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shrink-0 ${done ? (pass ? 'bg-success/10' : 'bg-danger/10') : 'bg-plum/10'}`}>
-                  {done
-                    ? pass ? <Trophy size={20} className="text-success" /> : <XCircle size={20} className="text-danger" />
-                    : <FileText size={20} className="text-plum" />
-                  }
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-text-primary text-sm md:text-base truncate">{test.title}</h3>
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
-                    <span className="text-xs text-text-muted flex items-center gap-1"><Clock size={11} /> {new Date(test.created_at).toLocaleDateString('ru-RU')}</span>
-                    <span className="text-xs text-text-muted">{test.questions.length} сұрақ</span>
-                    {done && (
-                      <span className={`text-xs font-bold ${pass ? 'text-success' : 'text-danger'}`}>
-                        {done.score}/{done.total} · {Math.round((done.score / done.total) * 100)}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => done ? null : startTest(test)}
-                  disabled={!!done}
-                  className={`shrink-0 px-4 py-2 rounded-xl font-bold text-xs md:text-sm transition-all ${
-                    done
-                      ? 'bg-bg-secondary text-text-muted cursor-default'
-                      : 'btn-primary hover:opacity-90'
-                  }`}
-                >
-                  {done ? 'Өтілді' : 'Бастау'}
-                </button>
-              </motion.div>
-            )
-          })}
-        </div>
+        <>
+          {/* Assignments section */}
+          {assignments.length > 0 && (
+            <div>
+              <h2 className="text-xs font-bold text-text-muted uppercase tracking-widest mb-3 flex items-center gap-2">
+                <ClipboardList size={14} className="text-rose" /> Тапсырмалар ({assignments.length})
+              </h2>
+              <div className="grid gap-3 mb-6">
+                {assignments.map(({ assignment, test }) => {
+                  const done = myResults[test.id]
+                  const pass = done && Math.round((done.score / done.total) * 100) >= 70
+                  const deadline = new Date(assignment.deadline)
+                  const isOverdue = deadline < new Date() && !done
+                  return (
+                    <motion.div key={assignment.id} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+                      className={`card flex items-center gap-3 border-2 ${isOverdue ? 'border-danger/40' : 'border-plum/20'}`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${done ? (pass ? 'bg-success/10' : 'bg-danger/10') : 'bg-plum/10'}`}>
+                        {done ? (pass ? <Trophy size={20} className="text-success" /> : <XCircle size={20} className="text-danger" />) : <ClipboardList size={20} className="text-plum" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-text-primary text-sm truncate">{test.title}</h3>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+                          <span className={`text-xs font-bold flex items-center gap-1 ${isOverdue ? 'text-danger' : 'text-plum'}`}>
+                            <Clock size={11} /> {deadline.toLocaleDateString('ru-RU')} {deadline.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                            {isOverdue && ' — мерзімі өтті!'}
+                          </span>
+                          {done && <span className={`text-xs font-bold ${pass ? 'text-success' : 'text-danger'}`}>{done.score}/{done.total} · {Math.round((done.score / done.total) * 100)}%</span>}
+                        </div>
+                      </div>
+                      <button onClick={() => done ? null : startTest({ id: test.id, title: test.title, questions: test.questions, created_at: '', status: test.status as any })}
+                        disabled={!!done}
+                        className={`shrink-0 px-4 py-2 rounded-xl font-bold text-xs transition-all ${done ? 'bg-bg-secondary text-text-muted cursor-default' : 'btn-primary'}`}>
+                        {done ? 'Өтілді' : 'Орындау'}
+                      </button>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* All tests */}
+          {tests.length === 0 && assignments.length === 0 ? (
+            <div className="card p-16 text-center">
+              <FileText size={48} className="text-text-muted mx-auto mb-4 opacity-30" />
+              <h3 className="text-lg font-bold text-text-muted">Тесттер жоқ</h3>
+              <p className="text-sm text-text-muted mt-1">Мұғалім тест жасағанда осы жерде пайда болады</p>
+            </div>
+          ) : tests.length > 0 ? (
+            <div className="grid gap-4">
+              {tests.map(test => {
+                const done = myResults[test.id]
+                const pass = done && Math.round((done.score / done.total) * 100) >= 70
+                return (
+                  <motion.div key={test.id} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="card flex items-center gap-3">
+                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shrink-0 ${done ? (pass ? 'bg-success/10' : 'bg-danger/10') : 'bg-plum/10'}`}>
+                      {done
+                        ? pass ? <Trophy size={20} className="text-success" /> : <XCircle size={20} className="text-danger" />
+                        : <FileText size={20} className="text-plum" />
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-text-primary text-sm md:text-base truncate">{test.title}</h3>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+                        <span className="text-xs text-text-muted flex items-center gap-1"><Clock size={11} /> {new Date(test.created_at).toLocaleDateString('ru-RU')}</span>
+                        <span className="text-xs text-text-muted">{test.questions.length} сұрақ</span>
+                        {done && (
+                          <span className={`text-xs font-bold ${pass ? 'text-success' : 'text-danger'}`}>
+                            {done.score}/{done.total} · {Math.round((done.score / done.total) * 100)}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => done ? null : startTest(test)}
+                      disabled={!!done}
+                      className={`shrink-0 px-4 py-2 rounded-xl font-bold text-xs md:text-sm transition-all ${
+                        done
+                          ? 'bg-bg-secondary text-text-muted cursor-default'
+                          : 'btn-primary hover:opacity-90'
+                      }`}
+                    >
+                      {done ? 'Өтілді' : 'Бастау'}
+                    </button>
+                  </motion.div>
+                )
+              })}
+            </div>
+          ) : null}
+        </>
       )}
     </div>
   )

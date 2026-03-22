@@ -177,3 +177,19 @@ testsRouter.get('/:id/my-result', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch result' })
   }
 })
+
+// PATCH /api/tests/results/:resultId/comment — teacher adds comment
+testsRouter.patch('/results/:resultId/comment', async (req, res) => {
+  try {
+    const { comment } = req.body
+    const [updated] = await db
+      .update(testResults)
+      .set({ teacher_comment: comment || null })
+      .where(eq(testResults.id, req.params.resultId))
+      .returning()
+    res.json({ result: updated })
+  } catch (error) {
+    console.error('Comment error:', error)
+    res.status(500).json({ error: 'Failed to save comment' })
+  }
+})

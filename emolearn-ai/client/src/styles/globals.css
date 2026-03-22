@@ -2,11 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-primary: #FDF5F8;
+  --bg-secondary: #F7EBF2;
+  --bg-card: #FFFFFF;
+  --text-primary: #1C1C2E;
+  --text-secondary: #5C4A5A;
+  --text-muted: #9C8A98;
+  --border-soft: #EDD8E8;
+}
+
+.dark {
+  --bg-primary: #0f0f1a;
+  --bg-secondary: #1a1a2e;
+  --bg-card: #1e1e30;
+  --text-primary: #f0e6ef;
+  --text-secondary: #c4a8c0;
+  --text-muted: #8a7a88;
+  --border-soft: #2d2040;
+}
+.dark body, .dark #root { background-color: var(--bg-primary) !important; color: var(--text-primary) !important; }
+.dark .bg-white { background-color: var(--bg-card) !important; }
+.dark .card { background-color: var(--bg-card) !important; border-color: var(--border-soft) !important; }
+.dark .sidebar { background: var(--bg-card) !important; border-color: var(--border-soft) !important; }
+.dark header { background-color: var(--bg-card) !important; border-color: var(--border-soft) !important; }
+.dark input, .dark textarea, .dark select { background-color: var(--bg-secondary) !important; color: var(--text-primary) !important; border-color: var(--border-soft) !important; }
+.dark .glass-card { background: rgba(30,30,48,0.85) !important; }
+
 @layer base {
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body, #root {
-    background-color: #FDF5F8 !important;
-    color: #1C1C2E !important;
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
     font-family: 'Nunito', sans-serif;
     min-height: 100vh;
     /* Prevent horizontal scroll on mobile */
@@ -42,8 +69,8 @@
     animation: draw-ecg 2s linear infinite;
   }
   .sidebar {
-    background: #FFFFFF !important;
-    border-right: 1.5px solid #EDD8E8;
+    background: var(--bg-card) !important;
+    border-right: 1.5px solid var(--border-soft);
     min-height: 100vh;
   }
   .nav-item-active {

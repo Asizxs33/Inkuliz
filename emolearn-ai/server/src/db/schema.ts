@@ -122,6 +122,7 @@ export const testResults = pgTable('test_results', {
   answers: jsonb('answers').notNull(), // number[]
   score: integer('score').notNull(),
   total: integer('total').notNull(),
+  teacher_comment: text('teacher_comment'),
   completed_at: timestamp('completed_at').defaultNow(),
 })
 
@@ -141,5 +142,14 @@ export const gestureModels = pgTable('gesture_models', {
   user_id: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   word_kz: varchar('word_kz', { length: 100 }).notNull(),
   raw_sequence: jsonb('raw_sequence').notNull(), // Landmark[][][]
+  created_at: timestamp('created_at').defaultNow(),
+})
+
+export const assignments = pgTable('assignments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  test_id: uuid('test_id').references(() => tests.id, { onDelete: 'cascade' }).notNull(),
+  teacher_id: uuid('teacher_id').references(() => users.id).notNull(),
+  class_id: uuid('class_id').references(() => classes.id, { onDelete: 'cascade' }).notNull(),
+  deadline: timestamp('deadline').notNull(),
   created_at: timestamp('created_at').defaultNow(),
 })

@@ -1,12 +1,12 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import { useUserStore } from '../store/userStore'
-import { FileText, Plus, Sparkles, Trash2, Eye, RotateCcw, Clock, CheckCircle2, X, Users } from 'lucide-react'
+import { FileText, Plus, Sparkles, Trash2, Eye, RotateCcw, Clock, CheckCircle2, X, Users, ClipboardList } from 'lucide-react'
 
 const API = (path: string) => (import.meta.env.VITE_API_URL || '') + path
 
 interface Question { question: string; options: string[]; correct: number }
-interface TestResult { student_name: string; score: number; total: number; completed_at: string }
+interface TestResult { id: string; student_name: string; score: number; total: number; completed_at: string; teacher_comment?: string }
 interface Test {
   id: string
   title: string
@@ -14,6 +14,30 @@ interface Test {
   created_at: string
   status: 'open' | 'closed'
   results: TestResult[]
+}
+
+function CommentInput({ resultId, initialComment, apiBase }: { resultId: string; initialComment: string; apiBase: string }) {
+  const [comment, setComment] = useState(initialComment)
+  const [saved, setSaved] = useState(false)
+  const save = async () => {
+    await fetch(`${apiBase}/api/tests/results/${resultId}/comment`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comment })
+    }).catch(() => {})
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+  return (
+    <div className="flex gap-2 items-center">
+      <input type="text" value={comment} onChange={e => setComment(e.target.value)}
+        placeholder="Пікір жазыңыз..."
+        className="flex-1 px-3 py-1.5 rounded-lg border border-border-soft text-xs focus:outline-none focus:border-plum bg-white" />
+      <button onClick={save} className="text-xs font-bold text-plum hover:underline whitespace-nowrap">
+        {saved ? '✓ Сақталды' : 'Сақтау'}
+      </button>
+    </div>
+  )
 }
 
 export default function TeacherTests() {
@@ -29,6 +53,13 @@ export default function TeacherTests() {
   const [isSaving, setIsSaving] = useState(false)
   const [aiTopic, setAiTopic] = useState('')
 
+  // Assignments state
+  const [assignTest, setAssignTest] = useState<Test | null>(null)
+  const [assignClassId, setAssignClassId] = useState('')
+  const [assignDeadline, setAssignDeadline] = useState('')
+  const [teacherClasses, setTeacherClasses] = useState<{id: string, name: string}[]>([])
+  const [isAssigning, setIsAssigning] = useState(false)
+
   const fetchTests = async () => {
     if (!teacherId) return
     try {
@@ -43,6 +74,14 @@ export default function TeacherTests() {
   }
 
   useEffect(() => { fetchTests() }, [teacherId])
+
+  useEffect(() => {
+    if (!teacherId) return
+    fetch(API(`/api/classes/${teacherId}`))
+      .then(r => r.json())
+      .then(d => setTeacherClasses(d.classes || []))
+      .catch(() => {})
+  }, [teacherId])
 
   const handleAIGenerate = async () => {
     if (!aiTopic.trim()) return
@@ -125,6 +164,22 @@ export default function TeacherTests() {
     }
   }
 
+  const handleAssign = async () => {
+    if (!assignTest || !assignClassId || !assignDeadline || !teacherId) return
+    setIsAssigning(true)
+    try {
+      await fetch(API('/api/assignments'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testId: assignTest.id, teacherId, classId: assignClassId, deadline: assignDeadline })
+      })
+      setAssignTest(null)
+      setAssignClassId('')
+      setAssignDeadline('')
+    } catch {}
+    finally { setIsAssigning(false) }
+  }
+
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
       <div className="flex items-center justify-between gap-3">
@@ -170,6 +225,9 @@ export default function TeacherTests() {
               <div className="flex items-center gap-1 shrink-0">
                 <button onClick={() => setViewTest(test)} className="p-2 hover:bg-plum-pale rounded-lg transition-colors" title="Көру">
                   <Eye size={16} className="text-plum" />
+                </button>
+                <button onClick={() => setAssignTest(test)} className="p-2 hover:bg-plum-pale rounded-lg transition-colors" title="Тапсырма беру">
+                  <ClipboardList size={16} className="text-plum" />
                 </button>
                 <button onClick={() => toggleStatus(test)} className="p-2 hover:bg-plum-pale rounded-lg transition-colors" title={test.status === 'open' ? 'Жабу' : 'Ашу'}>
                   <RotateCcw size={16} className="text-text-muted" />
@@ -273,17 +331,55 @@ export default function TeacherTests() {
                 <>
                   <p className="text-xs font-bold text-text-muted uppercase tracking-widest mt-6 mb-3">Студенттердің нәтижелері</p>
                   <div className="flex flex-col gap-2">
-                    {viewTest.results.map((r, i) => (
-                      <div key={i} className="flex items-center justify-between bg-bg-secondary rounded-xl px-4 py-2">
-                        <span className="text-sm font-bold text-text-primary">{r.student_name}</span>
-                        <span className={`text-sm font-bold ${r.score / r.total >= 0.7 ? 'text-success' : 'text-danger'}`}>
-                          {r.score}/{r.total}
-                        </span>
+                    {viewTest.results.map((r: any, i: number) => (
+                      <div key={i} className="bg-bg-secondary rounded-xl px-4 py-3 flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold text-text-primary">{r.student_name}</span>
+                          <span className={`text-sm font-bold ${r.score / r.total >= 0.7 ? 'text-success' : 'text-danger'}`}>
+                            {r.score}/{r.total}
+                          </span>
+                        </div>
+                        <CommentInput resultId={r.id} initialComment={r.teacher_comment || ''} apiBase={import.meta.env.VITE_API_URL || ''} />
                       </div>
                     ))}
                   </div>
                 </>
               )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Assign Test Modal */}
+      <AnimatePresence>
+        {assignTest && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setAssignTest(null)} />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl">
+              <button onClick={() => setAssignTest(null)} className="absolute right-4 top-4 text-text-muted hover:text-text-primary"><X size={20} /></button>
+              <h2 className="text-lg font-black text-text-primary mb-1 flex items-center gap-2"><ClipboardList size={20} className="text-plum" /> Тапсырма беру</h2>
+              <p className="text-xs text-text-muted mb-4 truncate">{assignTest.title}</p>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className="text-xs font-bold text-text-muted mb-1 block">Сынып</label>
+                  <select value={assignClassId} onChange={e => setAssignClassId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-soft text-sm focus:outline-none focus:border-plum">
+                    <option value="">Сынып таңдаңыз</option>
+                    {teacherClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-text-muted mb-1 block">Дедлайн</label>
+                  <input type="datetime-local" value={assignDeadline} onChange={e => setAssignDeadline(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-soft text-sm focus:outline-none focus:border-plum" />
+                </div>
+                <button onClick={handleAssign} disabled={!assignClassId || !assignDeadline || isAssigning}
+                  className="btn-primary py-2.5 font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+                  {isAssigning ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : null}
+                  Тапсырма беру
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
