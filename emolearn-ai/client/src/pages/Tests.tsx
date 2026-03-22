@@ -280,29 +280,29 @@ export default function Tests() {
             const done = myResults[test.id]
             const pass = done && Math.round((done.score / done.total) * 100) >= 70
             return (
-              <motion.div key={test.id} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="card flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${done ? (pass ? 'bg-success/10' : 'bg-danger/10') : 'bg-plum/10'}`}>
+              <motion.div key={test.id} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="card flex items-center gap-3">
+                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shrink-0 ${done ? (pass ? 'bg-success/10' : 'bg-danger/10') : 'bg-plum/10'}`}>
                   {done
-                    ? pass ? <Trophy size={24} className="text-success" /> : <XCircle size={24} className="text-danger" />
-                    : <FileText size={24} className="text-plum" />
+                    ? pass ? <Trophy size={20} className="text-success" /> : <XCircle size={20} className="text-danger" />
+                    : <FileText size={20} className="text-plum" />
                   }
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-text-primary truncate">{test.title}</h3>
-                  <p className="text-xs text-text-muted flex items-center gap-3 mt-1">
-                    <span className="flex items-center gap-1"><Clock size={12} /> {new Date(test.created_at).toLocaleDateString('ru-RU')}</span>
-                    <span>{test.questions.length} сұрақ</span>
+                  <h3 className="font-bold text-text-primary text-sm md:text-base truncate">{test.title}</h3>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+                    <span className="text-xs text-text-muted flex items-center gap-1"><Clock size={11} /> {new Date(test.created_at).toLocaleDateString('ru-RU')}</span>
+                    <span className="text-xs text-text-muted">{test.questions.length} сұрақ</span>
                     {done && (
-                      <span className={`font-bold ${pass ? 'text-success' : 'text-danger'}`}>
-                        {done.score}/{done.total} • {Math.round((done.score / done.total) * 100)}%
+                      <span className={`text-xs font-bold ${pass ? 'text-success' : 'text-danger'}`}>
+                        {done.score}/{done.total} · {Math.round((done.score / done.total) * 100)}%
                       </span>
                     )}
-                  </p>
+                  </div>
                 </div>
                 <button
                   onClick={() => done ? null : startTest(test)}
                   disabled={!!done}
-                  className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  className={`shrink-0 px-4 py-2 rounded-xl font-bold text-xs md:text-sm transition-all ${
                     done
                       ? 'bg-bg-secondary text-text-muted cursor-default'
                       : 'btn-primary hover:opacity-90'

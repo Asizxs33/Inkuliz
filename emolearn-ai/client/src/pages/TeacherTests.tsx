@@ -127,15 +127,15 @@ export default function TeacherTests() {
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold text-text-primary flex items-center gap-3">
-            <FileText size={28} className="text-plum" /> ТЕСТ БАСҚАРУ
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-extrabold text-text-primary flex items-center gap-2">
+            <FileText size={24} className="text-plum shrink-0" /> ТЕСТ БАСҚАРУ
           </h1>
-          <p className="text-text-secondary mt-1">Тесттерді жасаңыз, AI арқылы генерациялаңыз</p>
+          <p className="text-text-secondary mt-1 text-sm hidden sm:block">Тесттерді жасаңыз, AI арқылы генерациялаңыз</p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="btn-primary px-6 py-3 font-bold flex items-center gap-2">
-          <Plus size={18} /> Жаңа тест
+        <button onClick={() => setShowCreate(true)} className="btn-primary px-4 md:px-6 py-2.5 md:py-3 font-bold flex items-center gap-2 shrink-0 text-sm">
+          <Plus size={16} /> <span className="hidden sm:inline">Жаңа тест</span><span className="sm:hidden">Жасау</span>
         </button>
       </div>
 
@@ -152,30 +152,30 @@ export default function TeacherTests() {
       ) : (
         <div className="grid gap-4">
           {tests.map(test => (
-            <motion.div key={test.id} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="card flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${test.status === 'open' ? 'bg-success/10' : 'bg-gray-100'}`}>
-                <FileText size={24} className={test.status === 'open' ? 'text-success' : 'text-text-muted'} />
+            <motion.div key={test.id} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="card flex items-center gap-3">
+              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shrink-0 ${test.status === 'open' ? 'bg-success/10' : 'bg-gray-100'}`}>
+                <FileText size={20} className={test.status === 'open' ? 'text-success' : 'text-text-muted'} />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-text-primary truncate">{test.title}</h3>
-                <p className="text-xs text-text-muted flex items-center gap-3 mt-1">
-                  <span className="flex items-center gap-1"><Clock size={12} /> {new Date(test.created_at).toLocaleDateString('ru-RU')}</span>
-                  <span>{test.questions.length} сұрақ</span>
-                  <span className="flex items-center gap-1"><Users size={12} /> {test.results.length} жауап</span>
-                  <span className={`font-bold ${test.status === 'open' ? 'text-success' : 'text-text-muted'}`}>
+                <h3 className="font-bold text-text-primary text-sm md:text-base truncate">{test.title}</h3>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+                  <span className="text-xs text-text-muted flex items-center gap-1"><Clock size={11} /> {new Date(test.created_at).toLocaleDateString('ru-RU')}</span>
+                  <span className="text-xs text-text-muted">{test.questions.length} сұрақ</span>
+                  <span className="text-xs text-text-muted flex items-center gap-1"><Users size={11} /> {test.results.length}</span>
+                  <span className={`text-xs font-bold ${test.status === 'open' ? 'text-success' : 'text-text-muted'}`}>
                     {test.status === 'open' ? '● Ашық' : '● Жабық'}
                   </span>
-                </p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 shrink-0">
                 <button onClick={() => setViewTest(test)} className="p-2 hover:bg-plum-pale rounded-lg transition-colors" title="Көру">
-                  <Eye size={18} className="text-plum" />
+                  <Eye size={16} className="text-plum" />
                 </button>
                 <button onClick={() => toggleStatus(test)} className="p-2 hover:bg-plum-pale rounded-lg transition-colors" title={test.status === 'open' ? 'Жабу' : 'Ашу'}>
-                  <RotateCcw size={18} className="text-text-muted" />
+                  <RotateCcw size={16} className="text-text-muted" />
                 </button>
                 <button onClick={() => deleteTest(test.id)} className="p-2 hover:bg-red-50 rounded-lg transition-colors" title="Өшіру">
-                  <Trash2 size={18} className="text-danger" />
+                  <Trash2 size={16} className="text-danger" />
                 </button>
               </div>
             </motion.div>
@@ -215,14 +215,14 @@ export default function TeacherTests() {
                   <input type="text" value={q.question} placeholder="Сұрақ мәтіні"
                     onChange={e => { const u = [...questions]; u[qi].question = e.target.value; setQuestions(u) }}
                     className="w-full px-3 py-2 rounded-lg border border-border-soft mb-2 text-sm focus:outline-none focus:border-plum" />
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {q.options.map((opt, oi) => (
                       <div key={oi} className="flex items-center gap-2">
-                        <input type="radio" name={`correct-${qi}`} checked={q.correct === oi} className="accent-plum"
+                        <input type="radio" name={`correct-${qi}`} checked={q.correct === oi} className="accent-plum shrink-0"
                           onChange={() => { const u = [...questions]; u[qi].correct = oi; setQuestions(u) }} />
                         <input type="text" value={opt} placeholder={`Нұсқа ${String.fromCharCode(65 + oi)}`}
                           onChange={e => { const u = [...questions]; u[qi].options[oi] = e.target.value; setQuestions(u) }}
-                          className="flex-1 px-3 py-1.5 rounded-lg border border-border-soft text-sm focus:outline-none focus:border-plum" />
+                          className="flex-1 px-3 py-1.5 rounded-lg border border-border-soft text-sm focus:outline-none focus:border-plum min-w-0" />
                       </div>
                     ))}
                   </div>
