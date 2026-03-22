@@ -743,12 +743,12 @@ export default function SignLanguage() {
       )}
       
       {!isInLiveRoom && (
-        <div className="fixed bottom-6 right-6">
-          <button 
+        <div className="fixed bottom-24 md:bottom-8 right-4 md:right-6 z-50">
+          <button
             onClick={handleJoinChat}
-            className="px-6 py-3 bg-white text-plum rounded-full font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2"
+            className="px-5 py-3.5 bg-gradient-to-r from-plum to-rose text-white rounded-2xl font-bold shadow-xl shadow-plum/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 text-sm"
           >
-            <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
+            <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse" />
             Live Чатқа қосылу
           </button>
         </div>
