@@ -473,67 +473,83 @@ export default function Dictionary() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={() => setPreviewWord(null)}
-          className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
         >
           <motion.div
-            initial={{ scale: 0.85, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.85, opacity: 0, y: 20 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+            initial={{ y: '100%', opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: '100%', opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 32 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-bg-card rounded-3xl shadow-2xl border border-border-soft w-full max-w-sm overflow-hidden"
+            className="bg-bg-card rounded-t-3xl sm:rounded-3xl shadow-2xl border border-border-soft w-full max-w-sm overflow-hidden"
           >
+            {/* Drag handle (mobile) */}
+            <div className="flex justify-center pt-3 pb-1 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-border-soft" />
+            </div>
+
             {/* Header */}
-            <div className="flex items-center justify-between px-6 pt-5 pb-3">
-              <div>
-                <h2 className="text-2xl font-black text-text-primary">{previewWord.wordKz}</h2>
-                <p className="text-sm text-text-muted">{previewWord.transliteration}</p>
+            <div className="flex items-start justify-between px-6 pt-4 pb-0">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0"
+                  style={{ background: previewWord.color + '22' }}>
+                  {previewWord.emoji}
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-text-primary leading-tight">{previewWord.wordKz}</h2>
+                  <p className="text-xs text-text-muted">{previewWord.transliteration}</p>
+                </div>
               </div>
               <button
                 onClick={() => setPreviewWord(null)}
-                className="w-9 h-9 rounded-full bg-bg-secondary flex items-center justify-center hover:bg-border-soft transition-colors"
+                className="w-8 h-8 rounded-full bg-bg-secondary flex items-center justify-center hover:bg-border-soft transition-colors mt-1 shrink-0"
               >
-                <span className="text-text-muted text-lg font-bold leading-none">✕</span>
+                <span className="text-text-muted text-sm font-bold">✕</span>
               </button>
             </div>
 
-            {/* Gesture Display */}
-            <div className="mx-6 mb-4 rounded-2xl bg-bg-secondary flex items-center justify-center min-h-[220px] overflow-hidden">
-              {previewWord.gifUrl ? (
-                <img src={previewWord.gifUrl} alt={previewWord.wordKz} className="w-full h-[220px] object-contain" />
-              ) : (
-                <motion.div
-                  animate={getAnimationProps(previewWord.animation).animate}
-                  transition={getAnimationProps(previewWord.animation).transition}
-                  className="text-[110px] drop-shadow-lg select-none"
-                >
-                  {previewWord.emoji}
-                </motion.div>
-              )}
+            {/* Difficulty badge */}
+            <div className="px-6 pt-3 pb-0 flex gap-2">
+              <span className="text-xs font-bold px-3 py-1 rounded-full text-white" style={{ backgroundColor: previewWord.color }}>{previewWord.difficulty}</span>
+              <span className="text-xs font-bold px-3 py-1 rounded-full bg-bg-secondary text-text-muted">
+                {previewWord.category === 'basic' ? 'Негізгі' : previewWord.category === 'family' ? 'Отбасы' : previewWord.category === 'school' ? 'Мектеп' : previewWord.category === 'numbers' ? 'Сандар' : previewWord.category === 'colors' ? 'Түстер' : previewWord.category === 'emotions' ? 'Сезімдер' : previewWord.category === 'food' ? 'Тағам' : previewWord.category}
+              </span>
             </div>
 
-            {/* Gesture name + description */}
-            <div className="px-6 pb-4 flex flex-col gap-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="bg-plum/10 text-plum text-sm font-bold px-4 py-1.5 rounded-full border border-plum/20">{previewWord.gesture}</span>
-                <span className="text-xs font-bold px-3 py-1.5 rounded-full text-white" style={{ backgroundColor: previewWord.color }}>{previewWord.difficulty}</span>
+            {/* How to sign — main content */}
+            <div className="mx-6 mt-4 rounded-2xl overflow-hidden border border-border-soft">
+              {/* Gesture name bar */}
+              <div className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-plum/10 to-rose/5 border-b border-border-soft">
+                <Hand size={16} className="text-plum shrink-0" />
+                <span className="text-xs font-bold text-plum uppercase tracking-wider">Қол қимылы</span>
               </div>
-              {previewWord.description && (
-                <p className="text-sm text-text-secondary leading-relaxed">{previewWord.description}</p>
-              )}
+              {/* Gesture position name */}
+              <div className="px-4 py-3 bg-bg-secondary border-b border-border-soft">
+                <p className="text-base font-black text-text-primary">{previewWord.gesture}</p>
+              </div>
+              {/* Step-by-step description */}
+              <div className="px-4 py-4 bg-bg-card">
+                <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Қалай жасайды?</p>
+                {previewWord.description.split('. ').filter(Boolean).map((step, i) => (
+                  <div key={i} className="flex gap-3 items-start mb-2 last:mb-0">
+                    <span className="w-5 h-5 rounded-full bg-plum text-white text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                    <p className="text-sm text-text-secondary leading-snug">{step.replace(/\.$/, '')}.</p>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Actions */}
-            <div className="px-6 pb-6 flex gap-3">
+            <div className="px-6 py-5 flex gap-3">
               <button
                 onClick={() => { setPreviewWord(null); setPracticeWord(previewWord) }}
                 className="flex-1 py-3 bg-gradient-to-r from-plum to-rose text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
               >
-                <Camera size={15} /> Жаттығу
+                <Camera size={15} /> Камерамен жаттығу
               </button>
               <button
-                onClick={() => { toggleBookmark(previewWord.id); setPreviewWord(null) }}
-                className="w-12 py-3 border border-border-soft rounded-xl flex items-center justify-center hover:border-plum transition-colors"
+                onClick={() => toggleBookmark(previewWord.id)}
+                className={`w-12 py-3 border rounded-xl flex items-center justify-center transition-colors ${bookmarks.has(previewWord.id) ? 'border-plum bg-plum/10' : 'border-border-soft hover:border-plum'}`}
               >
                 {bookmarks.has(previewWord.id)
                   ? <BookmarkCheck size={18} className="text-plum" />
