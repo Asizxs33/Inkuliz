@@ -1,8 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Hand, MessageSquare, Info, Users } from 'lucide-react'
+import { Send, Hand, MessageSquare, Info, Users, X } from 'lucide-react'
 import { joinClassChat, emitClassChatMessage, onClassChatMessage, onClassChatUserJoined } from '../lib/socket'
 import { useUserStore } from '../store/userStore'
+import { useBiometricStore } from '../store/biometricStore'
+import { recognizeGesture, GestureHistory } from '../lib/gestureRecognizer'
+
+const CHAT_GESTURE_HISTORY = new GestureHistory(15)
 
 interface ChatMessage {
   id: string
@@ -16,10 +20,17 @@ interface ChatMessage {
 
 export default function LiveChat() {
   const { id: userId, name: userName, role } = useUserStore()
+  const { handLandmarks } = useBiometricStore()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputText, setInputText] = useState('')
   const chatEndRef = useRef<HTMLDivElement>(null)
-  
+
+  // Sign language input mode
+  const [signMode, setSignMode] = useState(false)
+  const [currentGesture, setCurrentGesture] = useState('—')
+  const [holdProgress, setHoldProgress] = useState(0)
+  const [lastAdded, setLastAdded] = useState('')
+
   // Class info
   const [classInfo, setClassInfo] = useState<any>(null)
   const [onlineUsers, setOnlineUsers] = useState<string[]>([])
@@ -87,6 +98,24 @@ export default function LiveChat() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // Process hand gestures when sign mode is active
+  useEffect(() => {
+    if (!signMode || !handLandmarks?.length) return
+    const result = recognizeGesture(handLandmarks)
+    const histResult = result.isMlMatch
+      ? CHAT_GESTURE_HISTORY.forceUnlock(result.wordKz)
+      : CHAT_GESTURE_HISTORY.push(result.wordKz)
+
+    setCurrentGesture(result.wordKz && result.wordKz !== '—' ? result.wordKz : '—')
+    setHoldProgress(histResult.progress)
+
+    if (histResult.isUnlocked && histResult.word && histResult.word !== '...' && histResult.word !== '—') {
+      setLastAdded(histResult.word)
+      setInputText(prev => prev ? `${prev} ${histResult.word!}` : histResult.word!)
+      setTimeout(() => setLastAdded(''), 1500)
+    }
+  }, [handLandmarks, signMode])
+
   const handleSendMessage = (e?: React.FormEvent) => {
     e?.preventDefault()
     if (!inputText.trim() || !userId || !classInfo?.id) return
@@ -95,7 +124,7 @@ export default function LiveChat() {
       classId: classInfo.id,
       userId,
       name: userName || 'Пайдаланушы',
-      text: inputText,
+      text: signMode ? `🤟 ${inputText}` : inputText,
       role: role || 'student',
       timestamp: new Date().toISOString()
     })
@@ -185,22 +214,99 @@ export default function LiveChat() {
             <div ref={chatEndRef} />
           </div>
 
+          {/* Sign Language Panel */}
+          <AnimatePresence>
+            {signMode && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden border-t border-border-soft bg-bg-secondary"
+              >
+                <div className="px-4 py-3 flex items-center gap-4">
+                  {/* Gesture indicator */}
+                  <div className="flex-1 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-plum/10 border border-plum/20 flex items-center justify-center shrink-0">
+                      <Hand size={18} className="text-plum" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Танылды</span>
+                        {lastAdded && (
+                          <motion.span
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="text-xs font-black text-success bg-success/10 px-2 py-0.5 rounded-full"
+                          >
+                            + {lastAdded}
+                          </motion.span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-black ${currentGesture !== '—' ? 'text-plum' : 'text-text-muted'}`}>
+                          {currentGesture !== '—' ? currentGesture : 'Қолыңызды камераға көрсетіңіз...'}
+                        </span>
+                      </div>
+                      {/* Hold progress bar */}
+                      {currentGesture !== '—' && holdProgress > 0 && holdProgress < 100 && (
+                        <div className="mt-1.5 h-1 bg-border-soft rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-gradient-to-r from-plum to-rose rounded-full"
+                            style={{ width: `${holdProgress}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Clear words */}
+                  {inputText && (
+                    <button
+                      onClick={() => setInputText('')}
+                      className="text-xs text-danger hover:text-danger/80 font-bold flex items-center gap-1 shrink-0"
+                    >
+                      <X size={12} /> Өшіру
+                    </button>
+                  )}
+                </div>
+                <div className="px-4 pb-2">
+                  <p className="text-[10px] text-text-muted">
+                    📷 Ымдау тілі режимі қосулы. Камерада қолыңызды ұстаңыз — жест танылғанда хабарламаға қосылады.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Chat Input */}
-          <form 
+          <form
             onSubmit={handleSendMessage}
-            className="p-4 bg-white border-t border-border-soft flex gap-2"
+            className="p-4 bg-bg-card border-t border-border-soft flex gap-2"
           >
-            <input 
-              type="text" 
+            <button
+              type="button"
+              onClick={() => setSignMode(v => !v)}
+              title="Ымдау тілімен жазу"
+              className={`p-3 rounded-xl transition-all shrink-0 ${
+                signMode
+                  ? 'bg-plum text-white shadow-lg shadow-plum/30'
+                  : 'bg-bg-secondary text-text-muted hover:text-plum hover:bg-plum/10'
+              }`}
+            >
+              <Hand size={20} />
+            </button>
+            <input
+              type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Хабарламаңызды жазыңыз..."
-              className="flex-1 px-4 py-3 bg-bg-secondary rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-plum/30 transition-all text-sm"
+              placeholder={signMode ? 'Ым арқылы сөздер қосылады...' : 'Хабарламаңызды жазыңыз...'}
+              className="flex-1 px-4 py-3 bg-bg-secondary rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-plum/30 text-sm"
             />
-            <button 
+            <button
               type="submit"
               disabled={!inputText.trim()}
-              className="p-3 bg-plum text-white rounded-xl shadow-lg shadow-plum/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+              className="p-3 bg-plum text-white rounded-xl shadow-lg shadow-plum/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 shrink-0"
             >
               <Send size={20} />
             </button>
