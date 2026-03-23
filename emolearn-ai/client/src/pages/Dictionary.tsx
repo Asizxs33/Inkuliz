@@ -412,8 +412,17 @@ export default function Dictionary() {
                 className="card cursor-pointer hover:shadow-lg transition-all p-0 overflow-hidden group"
               >
                 <div className="relative">
-                  <div className="bg-bg-secondary h-36 flex items-center justify-center">
-                    <span className="text-5xl group-hover:scale-110 transition-transform">{word.emoji}</span>
+                  <div className="bg-bg-secondary h-36 flex items-center justify-center overflow-hidden">
+                    {word.gifUrl ? (
+                      <img src={word.gifUrl} alt={word.wordKz} className="w-full h-full object-cover" />
+                    ) : (
+                      <motion.div
+                        {...getAnimationProps(word.animation)}
+                        className="text-5xl select-none"
+                      >
+                        {word.emoji}
+                      </motion.div>
+                    )}
                   </div>
                   <span className="absolute top-3 right-3 text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: word.color }}>
                     {word.difficulty}
