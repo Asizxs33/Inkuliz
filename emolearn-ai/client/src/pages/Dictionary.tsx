@@ -277,7 +277,7 @@ export default function Dictionary() {
                   <div className="w-32 h-32 rounded-3xl bg-white border-2 border-plum/20 shadow-xl flex items-center justify-center relative overflow-hidden">
                     {playbackSequence[playbackIndex].gesture !== 'БЕЛГІСІЗ' ? (
                       playbackSequence[playbackIndex].gifUrl ? (
-                         <img src={playbackSequence[playbackIndex].gifUrl} alt="Gesture GIF" className="w-full h-full object-cover" />
+                         <video src={playbackSequence[playbackIndex].gifUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
                       ) : (
                         <motion.div 
                           animate={getAnimationProps(playbackSequence[playbackIndex].animation).animate}
@@ -356,7 +356,7 @@ export default function Dictionary() {
             </div>
             <div className="bg-bg-secondary flex items-center justify-center p-10 min-h-[250px] rounded-xl">
               {wordOfTheDay.gifUrl ? (
-                <img src={wordOfTheDay.gifUrl} alt={wordOfTheDay.wordKz} className="w-full h-full max-h-[200px] object-contain rounded-xl" />
+                <video src={wordOfTheDay.gifUrl} autoPlay loop muted playsInline className="w-full max-h-[200px] object-contain rounded-xl" />
               ) : (
                 <motion.div
                   animate={getAnimationProps(wordOfTheDay.animation).animate}
@@ -414,7 +414,7 @@ export default function Dictionary() {
                 <div className="relative">
                   <div className="bg-bg-secondary h-36 flex items-center justify-center overflow-hidden">
                     {word.gifUrl ? (
-                      <img src={word.gifUrl} alt={word.wordKz} className="w-full h-full object-cover" />
+                      <video src={word.gifUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
                     ) : (
                       <motion.div
                         {...getAnimationProps(word.animation)}
@@ -524,6 +524,17 @@ export default function Dictionary() {
                 {previewWord.category === 'basic' ? 'Негізгі' : previewWord.category === 'family' ? 'Отбасы' : previewWord.category === 'school' ? 'Мектеп' : previewWord.category === 'numbers' ? 'Сандар' : previewWord.category === 'colors' ? 'Түстер' : previewWord.category === 'emotions' ? 'Сезімдер' : previewWord.category === 'food' ? 'Тағам' : previewWord.category}
               </span>
             </div>
+
+            {/* Video if available */}
+            {previewWord.gifUrl && (
+              <div className="mx-6 mt-4 rounded-2xl overflow-hidden bg-black">
+                <video
+                  src={previewWord.gifUrl}
+                  autoPlay loop muted playsInline
+                  className="w-full max-h-[220px] object-contain"
+                />
+              </div>
+            )}
 
             {/* How to sign — main content */}
             <div className="mx-6 mt-4 rounded-2xl overflow-hidden border border-border-soft">

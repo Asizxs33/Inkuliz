@@ -24,9 +24,10 @@ export const DICTIONARY_CATEGORIES = [
   { id: 'bookmarks', label: 'Сақталған', iconName: 'Bookmark' },
 ]
 
-// All GIFs sourced from "Sign with Robert" educational ASL series on GIPHY
+// All videos sourced from "Sign with Robert" educational ASL series on GIPHY
+// Using MP4 format (lighter, always loops, works on iOS)
 // https://giphy.com/signwithrobert
-const G = (id: string) => `https://media.giphy.com/media/${id}/giphy.gif`
+const G = (id: string) => `https://media.giphy.com/media/${id}/giphy.mp4`
 
 export const DICTIONARY_DATA: DictionaryWord[] = [
   // ═══════════════ НЕГІЗГІ (15) ═══════════════
