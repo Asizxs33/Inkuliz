@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Hand, MessageSquare, Info, Users, X } from 'lucide-react'
+import { Send, Hand, MessageSquare, Info, Users, X, Sparkles, RotateCcw } from 'lucide-react'
 import { joinClassChat, emitClassChatMessage, onClassChatMessage, onClassChatUserJoined } from '../lib/socket'
 import { useUserStore } from '../store/userStore'
 import { useBiometricStore } from '../store/biometricStore'
@@ -30,6 +30,9 @@ export default function LiveChat() {
   const [currentGesture, setCurrentGesture] = useState('—')
   const [holdProgress, setHoldProgress] = useState(0)
   const [lastAdded, setLastAdded] = useState('')
+  const [signWords, setSignWords] = useState<string[]>([])
+  const [aiSentence, setAiSentence] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
 
   // Class info
   const [classInfo, setClassInfo] = useState<any>(null)
@@ -110,11 +113,36 @@ export default function LiveChat() {
     setHoldProgress(histResult.progress)
 
     if (histResult.isUnlocked && histResult.word && histResult.word !== '...' && histResult.word !== '—') {
-      setLastAdded(histResult.word)
-      setInputText(prev => prev ? `${prev} ${histResult.word!}` : histResult.word!)
+      const w = histResult.word!
+      setLastAdded(w)
+      setSignWords(prev => [...prev.slice(-9), w])
+      setInputText(prev => prev ? `${prev} ${w}` : w)
       setTimeout(() => setLastAdded(''), 1500)
     }
   }, [handLandmarks, signMode])
+
+  // AI sentence construction: fires 2s after last new sign word
+  useEffect(() => {
+    if (!signMode || signWords.length === 0) return
+    const timer = setTimeout(async () => {
+      setIsGenerating(true)
+      try {
+        const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/sign-language/sentence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ words: signWords }),
+          signal: AbortSignal.timeout(8000),
+        })
+        const data = await res.json()
+        if (data.sentence) setAiSentence(data.sentence)
+      } catch {
+        // silently ignore
+      } finally {
+        setIsGenerating(false)
+      }
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [signWords, signMode])
 
   const handleSendMessage = (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -224,56 +252,84 @@ export default function LiveChat() {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden border-t border-border-soft bg-bg-secondary"
               >
-                <div className="px-4 py-3 flex items-center gap-4">
-                  {/* Gesture indicator */}
-                  <div className="flex-1 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-plum/10 border border-plum/20 flex items-center justify-center shrink-0">
-                      <Hand size={18} className="text-plum" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Танылды</span>
+                {/* Current gesture + progress */}
+                <div className="px-4 pt-3 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-plum/10 border border-plum/20 flex items-center justify-center shrink-0">
+                    <Hand size={16} className="text-plum" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm font-black ${currentGesture !== '—' ? 'text-plum' : 'text-text-muted'}`}>
+                        {currentGesture !== '—' ? currentGesture : 'Қолыңызды камераға көрсетіңіз...'}
+                      </span>
+                      <AnimatePresence>
                         {lastAdded && (
                           <motion.span
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="text-xs font-black text-success bg-success/10 px-2 py-0.5 rounded-full"
-                          >
-                            + {lastAdded}
-                          </motion.span>
+                            initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+                            className="text-xs font-black text-success bg-success/10 px-2 py-0.5 rounded-full ml-2"
+                          >+ {lastAdded}</motion.span>
                         )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-black ${currentGesture !== '—' ? 'text-plum' : 'text-text-muted'}`}>
-                          {currentGesture !== '—' ? currentGesture : 'Қолыңызды камераға көрсетіңіз...'}
-                        </span>
-                      </div>
-                      {/* Hold progress bar */}
-                      {currentGesture !== '—' && holdProgress > 0 && holdProgress < 100 && (
-                        <div className="mt-1.5 h-1 bg-border-soft rounded-full overflow-hidden">
-                          <motion.div
-                            className="h-full bg-gradient-to-r from-plum to-rose rounded-full"
-                            style={{ width: `${holdProgress}%` }}
-                          />
-                        </div>
-                      )}
+                      </AnimatePresence>
                     </div>
+                    {currentGesture !== '—' && holdProgress > 0 && holdProgress < 100 && (
+                      <div className="mt-1 h-1 bg-border-soft rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-plum to-rose rounded-full transition-all" style={{ width: `${holdProgress}%` }} />
+                      </div>
+                    )}
                   </div>
-                  {/* Clear words */}
-                  {inputText && (
+                  {(signWords.length > 0) && (
                     <button
-                      onClick={() => setInputText('')}
-                      className="text-xs text-danger hover:text-danger/80 font-bold flex items-center gap-1 shrink-0"
+                      onClick={() => { setSignWords([]); setAiSentence(''); setInputText('') }}
+                      className="text-xs text-danger font-bold flex items-center gap-1 shrink-0"
                     >
-                      <X size={12} /> Өшіру
+                      <RotateCcw size={12} /> Тазалау
                     </button>
                   )}
                 </div>
-                <div className="px-4 pb-2">
-                  <p className="text-[10px] text-text-muted">
-                    📷 Ымдау тілі режимі қосулы. Камерада қолыңызды ұстаңыз — жест танылғанда хабарламаға қосылады.
-                  </p>
+
+                {/* Detected words chips */}
+                {signWords.length > 0 && (
+                  <div className="px-4 pt-2 flex flex-wrap gap-1.5">
+                    {signWords.map((w, i) => (
+                      <span key={i} className="text-xs font-bold bg-plum/10 text-plum border border-plum/20 px-2.5 py-1 rounded-full">
+                        {w}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* AI sentence suggestion */}
+                {(isGenerating || aiSentence) && (
+                  <div className="mx-4 mt-2 mb-1 rounded-xl border border-border-soft overflow-hidden">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-rose/10 to-plum/5 border-b border-border-soft">
+                      <div className="w-5 h-5 rounded-full bg-gradient-to-br from-rose to-plum flex items-center justify-center shrink-0">
+                        <Sparkles size={10} className="text-white" />
+                      </div>
+                      <span className="text-[10px] font-bold text-plum uppercase tracking-wider">AI ұсынысы</span>
+                    </div>
+                    <div className="px-3 py-2 bg-bg-card flex items-center justify-between gap-3">
+                      {isGenerating ? (
+                        <div className="flex items-center gap-2 text-text-muted text-xs">
+                          <div className="w-3 h-3 border-2 border-plum/30 border-t-plum rounded-full animate-spin" />
+                          Сөйлем құрастырылуда...
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-sm text-text-primary font-medium leading-snug flex-1">{aiSentence}</p>
+                          <button
+                            onClick={() => { setInputText(aiSentence); setAiSentence('') }}
+                            className="shrink-0 text-xs font-bold bg-gradient-to-r from-plum to-rose text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity"
+                          >
+                            Қолдану
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="px-4 py-2">
+                  <p className="text-[10px] text-text-muted">📷 Ымдау тілі + AI режимі. Жесті ұстаңыз → сөз қосылады → AI сөйлем құрастырады.</p>
                 </div>
               </motion.div>
             )}
