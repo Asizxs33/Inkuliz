@@ -110,15 +110,20 @@ export default function Teacher() {
       try {
         const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/classes/${activeClass.id}/students`)
         const data = await res.json()
-        const mapped = data.students.map((s: any) => ({
-          ...s,
-          emotion: '—',
-          bpm: 0,
-          status: 'calm',
-          online: false,
-          emotionHistory: [] as string[],
-          bpmHistory: [] as number[]
-        }))
+        const EMOTION_MAP: Record<string, string> = {
+          happy: 'ҚУАНЫШТЫ', neutral: 'БЕЙТАРАП', focused: 'ЗЕЙІНДІ',
+          confused: 'ШАТАСҚАН', sad: 'ҚАЙҒЫЛЫ', angry: 'АШУЛЫ', fearful: 'ҚОРЫҚҚАН',
+        }
+        const mapped = data.students.map((s: any) => {
+          const bio = s.latestBio
+          if (!bio) return { ...s, emotion: '—', bpm: 0, status: 'calm', online: false, emotionHistory: [], bpmHistory: [] }
+          const emotionKz = EMOTION_MAP[bio.emotion] || bio.emotion || '—'
+          const bpm = bio.bpm || 0
+          const status = bpm > 90 || bio.emotion === 'angry' || bio.emotion === 'fearful'
+            ? 'stressed'
+            : (bio.emotion === 'focused' ? 'focused' : 'calm')
+          return { ...s, emotion: emotionKz, bpm, status, online: true, emotionHistory: [emotionKz], bpmHistory: [bpm] }
+        })
         setStudents(mapped)
         if (mapped.length > 0) setSelectedStudent(mapped[0])
       } catch (err) {

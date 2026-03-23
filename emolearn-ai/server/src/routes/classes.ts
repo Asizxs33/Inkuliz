@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { db } from '../db/index.js'
-import { classes, classStudents, users, alerts } from '../db/schema.js'
-import { eq, and, ilike } from 'drizzle-orm'
+import { classes, classStudents, users, alerts, emotionLogs } from '../db/schema.js'
+import { eq, and, ilike, desc } from 'drizzle-orm'
 
 export const classesRouter = Router()
 
@@ -216,7 +216,7 @@ classesRouter.get('/:teacherId', async (req, res) => {
 classesRouter.get('/:classId/students', async (req, res) => {
   try {
     const classId = req.params.classId
-    
+
     // Get all students in this class
     const students = await db
       .select({
@@ -229,7 +229,32 @@ classesRouter.get('/:classId/students', async (req, res) => {
       .innerJoin(users, eq(classStudents.student_id, users.id))
       .where(eq(classStudents.class_id, classId))
 
-    res.json({ students })
+    // For each student, fetch latest emotion log (to pre-populate "online" state)
+    const ONLINE_WINDOW_MS = 60 * 60 * 1000 // 1 hour
+    const studentsWithBio = await Promise.all(students.map(async (s) => {
+      const [latest] = await db
+        .select()
+        .from(emotionLogs)
+        .where(eq(emotionLogs.user_id, s.id))
+        .orderBy(desc(emotionLogs.timestamp))
+        .limit(1)
+
+      if (!latest) return s
+      const age = Date.now() - new Date(latest.timestamp!).getTime()
+      if (age > ONLINE_WINDOW_MS) return s
+
+      return {
+        ...s,
+        latestBio: {
+          emotion: latest.emotion,
+          bpm: latest.bpm,
+          cognitive_load: latest.cognitive,
+          timestamp: latest.timestamp,
+        }
+      }
+    }))
+
+    res.json({ students: studentsWithBio })
   } catch (error) {
     console.error('Fetch students error:', error)
     res.status(500).json({ error: 'Failed to fetch students' })
