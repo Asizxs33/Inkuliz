@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Hand, Brain, Heart, Sparkles, BarChart3, MessageSquare, BookOpen, ArrowRight, Film, FileText, Zap, Eye, Shield, ChevronDown } from 'lucide-react'
+import icon from '../assets/icon.jpg'
 import { useEffect, useRef, useState } from 'react'
 
 // ── Animated counter (IntersectionObserver, counts up once) ───
@@ -73,9 +74,7 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="relative">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#6B2D5E] to-[#E8507A] flex items-center justify-center shadow-md">
-                <span className="text-white font-black text-base">F</span>
-              </div>
+              <img src={icon} alt="logo" className="w-9 h-9 rounded-xl object-cover shadow-md" />
               <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#E8507A] border-2 border-white animate-pulse" />
             </div>
             <span className="font-black text-xl bg-clip-text text-transparent bg-gradient-to-r from-[#6B2D5E] to-[#E8507A]">FeelFlow</span>

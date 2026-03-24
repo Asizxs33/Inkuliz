@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Brain, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import icon from '../assets/icon.jpg'
 import { useUserStore } from '../store/userStore'
 import { useNavigate } from 'react-router-dom'
 
@@ -56,9 +57,7 @@ export default function Register() {
         className="w-full max-w-md bg-white rounded-3xl p-8 shadow-xl border border-border-soft"
       >
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-plum to-rose rounded-2xl flex items-center justify-center shadow-lg shadow-plum/20 mb-4">
-            <Brain size={32} className="text-white" />
-          </div>
+          <img src={icon} alt="logo" className="w-16 h-16 rounded-2xl object-cover shadow-lg shadow-plum/20 mb-4" />
           <h1 className="text-2xl font-extrabold text-text-primary">Жаңа аккаунт</h1>
           <p className="text-sm text-text-muted mt-1">Жүйеге тіркеліңіз</p>
         </div>

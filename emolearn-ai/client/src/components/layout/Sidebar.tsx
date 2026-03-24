@@ -1,4 +1,5 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import icon from '../../assets/icon.jpg'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Hand, BarChart3, BookOpen, User, GraduationCap,
@@ -60,9 +61,7 @@ export function Sidebar() {
       {/* ── DESKTOP SIDEBAR (md+) ── */}
       <aside className="sidebar hidden md:flex w-[72px] hover:w-[220px] transition-all duration-300 flex-col items-center py-6 group overflow-hidden shrink-0 z-50">
         <div className="flex items-center gap-3 px-4 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-plum to-rose flex items-center justify-center shrink-0">
-            <span className="text-white font-bold text-lg">E</span>
-          </div>
+          <img src={icon} alt="logo" className="w-10 h-10 rounded-xl object-cover shrink-0" />
           <span className="text-plum font-extrabold text-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             FeelFlow
           </span>
