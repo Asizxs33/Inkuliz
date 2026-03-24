@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { X, Brain, CheckCircle2, Trash2, Video } from 'lucide-react'
 import { ML_CLASSIFIER } from '../lib/mlClassifier'
 import { useBiometricStore } from '../store/biometricStore'
+import { useUserStore } from '../store/userStore'
 import { DICTIONARY_DATA } from '../lib/dictionaryData'
 import type { Landmark } from '../lib/gestureRecognizer'
 
@@ -19,6 +20,7 @@ export default function AITrainerModal({ onClose }: Props) {
   const [isSyncing, setIsSyncing] = useState(true)
 
   const { handLandmarks, isCameraEnabled } = useBiometricStore()
+  const { id: userId } = useUserStore()
   const latestLandmarksRef = useRef<Landmark[][] | null>(null)
 
   useEffect(() => {
@@ -29,9 +31,9 @@ export default function AITrainerModal({ onClose }: Props) {
     }
   }, [handLandmarks])
 
-  // On mount: sync from server first, then read counts
+  // On mount: sync from server first (pass userId directly to avoid race condition), then read counts
   useEffect(() => {
-    ML_CLASSIFIER.syncFromServer().finally(() => {
+    ML_CLASSIFIER.syncFromServer(userId || undefined).finally(() => {
       setIsSyncing(false)
       setTrainedCount(ML_CLASSIFIER.getCounts()[selectedWord] || 0)
     })

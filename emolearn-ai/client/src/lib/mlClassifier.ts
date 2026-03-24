@@ -160,10 +160,12 @@ export class GestureML {
   }
 
   // Merge server sequences (server is source of truth)
-  public async syncFromServer() {
-    if (!this.userId) return
+  public async syncFromServer(overrideUserId?: string) {
+    const uid = overrideUserId || this.userId
+    if (!uid) return
+    if (!this.userId) this.userId = uid
     try {
-      const res = await fetch(`${API_BASE}/api/gestures/${this.userId}`)
+      const res = await fetch(`${API_BASE}/api/gestures/${uid}`)
       if (!res.ok) return
       const { sequences } = await res.json()
       if (!sequences?.length) return
