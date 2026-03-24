@@ -5,7 +5,18 @@ import { eq, and } from 'drizzle-orm'
 
 export const gesturesRouter = Router()
 
-// GET /api/gestures/:userId — load all trained sequences for a user
+// GET /api/gestures/all — load all trained sequences (shared across all users)
+gesturesRouter.get('/all', async (_req, res) => {
+  try {
+    const rows = await db.select().from(gestureModels)
+    res.json({ sequences: rows })
+  } catch (error) {
+    console.error('Load gestures error:', error)
+    res.status(500).json({ error: 'Failed to load gestures' })
+  }
+})
+
+// GET /api/gestures/:userId — load sequences for a specific user (kept for compat)
 gesturesRouter.get('/:userId', async (req, res) => {
   try {
     const rows = await db
