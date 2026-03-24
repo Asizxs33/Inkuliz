@@ -18,6 +18,7 @@ export default function AITrainerModal({ onClose }: Props) {
   const [trainedCount, setTrainedCount] = useState(0)
   const [saveError, setSaveError] = useState(false)
   const [isSyncing, setIsSyncing] = useState(true)
+  const [syncDebug, setSyncDebug] = useState<{ uid: string | null; count: number; error: string | null } | null>(null)
 
   const { handLandmarks, isCameraEnabled } = useBiometricStore()
   const { id: userId } = useUserStore()
@@ -33,7 +34,8 @@ export default function AITrainerModal({ onClose }: Props) {
 
   // On mount: sync from server first (pass userId directly to avoid race condition), then read counts
   useEffect(() => {
-    ML_CLASSIFIER.syncFromServer(userId || undefined).finally(() => {
+    ML_CLASSIFIER.syncFromServer(userId || undefined).then((debug) => {
+      setSyncDebug(debug)
       setIsSyncing(false)
       setTrainedCount(ML_CLASSIFIER.getCounts()[selectedWord] || 0)
     })
@@ -138,6 +140,11 @@ export default function AITrainerModal({ onClose }: Props) {
            )}
            {saveError && (
               <p className="text-xs text-danger font-bold text-center bg-danger/10 py-2 rounded-lg">Сервер қатесі: жест сақталмады</p>
+           )}
+           {syncDebug && (
+             <div className="text-[10px] text-white/40 bg-white/5 rounded-lg px-3 py-2 font-mono break-all">
+               uid: {syncDebug.uid?.slice(0, 8) ?? 'null'} | server: {syncDebug.count} | err: {syncDebug.error ?? '—'}
+             </div>
            )}
 
            <div className="flex gap-2 pt-4">
