@@ -37,7 +37,7 @@ const io = new Server(httpServer, {
 })
 
 app.use(cors({ origin: allowedOrigins }))
-app.use(express.json())
+app.use(express.json({ limit: '5mb' }))
 
 // Routes
 app.use('/api/auth', authRouter)

@@ -191,16 +191,16 @@ export class GestureML {
     this.examples.push({ wordKz, rawSequence, sequence })
     this.saveToLocalStorage()
 
-    // Save to server in background
+    // Save to server
     if (this.userId) {
-      try {
-        await fetch(`${API_BASE}/api/gestures`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: this.userId, wordKz, rawSequence }),
-        })
-      } catch (e) {
-        console.warn('[ML] Server save failed, stored locally only', e)
+      const res = await fetch(`${API_BASE}/api/gestures`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: this.userId, wordKz, rawSequence }),
+      })
+      if (!res.ok) {
+        const err = await res.text().catch(() => res.statusText)
+        throw new Error(`Server save failed: ${res.status} ${err}`)
       }
     }
   }

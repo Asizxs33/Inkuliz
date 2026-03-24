@@ -15,6 +15,7 @@ export default function AITrainerModal({ onClose }: Props) {
   const [isRecording, setIsRecording] = useState(false)
   const [progress, setProgress] = useState(0)
   const [trainedCount, setTrainedCount] = useState(0)
+  const [saveError, setSaveError] = useState(false)
   
   const { handLandmarks, isCameraEnabled } = useBiometricStore()
   const latestLandmarksRef = useRef<Landmark[][] | null>(null)
@@ -55,8 +56,13 @@ export default function AITrainerModal({ onClose }: Props) {
   }
 
   const finishTraining = async (sequence: Landmark[][][]) => {
-     await ML_CLASSIFIER.addSequenceExample(selectedWord, sequence)
-     setTrainedCount(prev => prev + 1)
+     setSaveError(false)
+     try {
+       await ML_CLASSIFIER.addSequenceExample(selectedWord, sequence)
+       setTrainedCount(ML_CLASSIFIER.getCounts()[selectedWord] || 0)
+     } catch {
+       setSaveError(true)
+     }
      setIsRecording(false)
      setProgress(0)
   }
@@ -114,6 +120,9 @@ export default function AITrainerModal({ onClose }: Props) {
 
            {!isCameraEnabled && (
               <p className="text-xs text-danger font-bold text-center bg-danger/10 py-2 rounded-lg">Камера қосылмаған!</p>
+           )}
+           {saveError && (
+              <p className="text-xs text-danger font-bold text-center bg-danger/10 py-2 rounded-lg">Сервер қатесі: жест сақталмады</p>
            )}
 
            <div className="flex gap-2 pt-4">
