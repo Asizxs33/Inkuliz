@@ -87,7 +87,7 @@ export default function TeacherTests() {
     if (!aiTopic.trim()) return
     setIsGenerating(true)
     try {
-      const res = await fetch(API('/api/chat/message'), {
+      const res = await fetch(API('/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -33,6 +33,8 @@ npm start        # node dist/index.js
 npx drizzle-kit generate   # Generate migration from schema changes
 npx drizzle-kit push       # Push schema directly to DB (dev only)
 npx drizzle-kit studio     # Visual DB browser
+# Fallback if drizzle-kit fails with "bad interpreter":
+node node_modules/drizzle-kit/bin.cjs push
 ```
 
 Run client and server simultaneously. The client dev server proxies `/api` and `/socket.io` to `localhost:3001`.
@@ -60,13 +62,13 @@ PORT=3001            # Optional, defaults to 3001
 emolearn-ai/
 ├── client/          # React 18 + TypeScript + Vite SPA
 │   └── src/
-│       ├── pages/       # Route-level components
+│       ├── pages/       # Route-level components (15 pages)
 │       ├── components/  # Shared UI + GlobalBiometrics overlay
 │       ├── lib/         # ML utilities (emotionDetector, gestureRecognizer, rppg)
-│       └── store/       # Zustand stores (userStore, biometricStore, lessonStore)
+│       └── store/       # Zustand stores (userStore, biometricStore, lessonStore, themeStore)
 ├── server/          # Express + Socket.IO + Drizzle ORM
 │   └── src/
-│       ├── routes/      # 8 Express routers under /api/*
+│       ├── routes/      # 12 Express routers under /api/*
 │       ├── db/          # schema.ts + index.ts (Neon connection)
 │       ├── services/    # OpenAI, Telegram, predictions
 │       ├── socket/      # Socket.IO event handlers (handlers.ts)
@@ -91,33 +93,41 @@ emolearn-ai/
 
 ### Real-time (Socket.IO)
 
-Used for:
-- Live chat (`/live-chat`) with gesture support
-- Streaming biometric data from client to server
-- WebRTC peer-to-peer signaling
-
 All Socket.IO events are set up in `server/src/socket/handlers.ts` via `setupSocket(io)`.
+
+Key event groups:
+- `biometric:update` — stream emotion/BPM/cognitive data from student to teacher
+- `class_chat:*` — class-scoped chat
+- `live_chat_message` — live room with sign ↔ text
+- `webrtc:*` — mesh multi-peer signaling (offer, answer, ice-candidate); each signal includes `targetId` to route to a specific socket
+- `notification:send/receive` — in-app notifications
+- `test:submitted` — emitted to `user:{teacher_id}` room when a student submits a test
+
+WebRTC uses a full-mesh topology: when a user joins `live_room`, the server sends `webrtc:existing-users` with all current peer socket IDs, and the joiner creates offers to each. Signals are routed directly to `targetId` rather than broadcast.
 
 ### ML Pipeline (client-side)
 
 All ML runs in the browser for privacy:
-1. **Emotion** — `lib/emotionDetector.ts` via face-api.js; models loaded from CDN
+1. **Emotion** — `lib/emotionDetector.ts` via face-api.js; models loaded from CDN; EAR (Eye Aspect Ratio) for drowsiness detection
 2. **Heart rate** — `lib/rppg.ts` rPPG algorithm from webcam video (no physical sensors)
-3. **Gesture** — `lib/gestureRecognizer.ts` (MediaPipe Hands) with 15-frame smoothing buffer
-4. `GlobalBiometrics.tsx` — persistent overlay aggregating all three; periodically POSTs to `/api/biometrics`
+3. **Gesture** — `lib/gestureRecognizer.ts` (MediaPipe Hands, 21 landmarks) with 15-frame smoothing; falls back to ML classifier in `lib/mlClassifier.ts`
 
-Sleep detection uses EAR (Eye Aspect Ratio) angle thresholds to detect drowsiness. Alerts are sent via Telegram when thresholds are exceeded.
+`GlobalBiometrics.tsx` is a persistent overlay that aggregates all three data streams, periodically POSTs to `/api/biometrics`, streams via Socket.IO to teacher dashboards, and triggers Telegram alerts when drowsiness/stress thresholds are exceeded.
 
 ### Database (Drizzle ORM + Neon PostgreSQL)
 
 Schema in `server/src/db/schema.ts`. All IDs are UUIDs. Key tables and relations:
-- `users` — email/password, role (`student`/`teacher`), university, course
+- `users` — email/password (bcrypted), role (`student`/`teacher`), university, course
 - `classes` — owned by a teacher; students join via `invite_code`
 - `classStudents` — M2M between `classes` and `users`
 - `biometricSessions` → `emotionLogs` — per-session aggregates and per-timestamp emotion/BPM/cognitive rows
 - `studentProgress` → `lessons` + `users` — tracks completion, score, time_spent
 - `signWords` — Kazakh/Russian word pairs with `landmarks` JSONB for gesture matching, `image_url`, category, difficulty
 - `alerts` — link teacher and student for drowsiness/stress notifications
+- `tests` / `testResults` — teacher-created tests with JSONB questions; student answers auto-scored; `teacher_comment` column for per-result feedback
+- `assignments` — links a test to a class with a deadline; students see assigned tests with overdue detection
+- `bookmarks` — user + signWord M2M with unique constraint; synced cross-device via `/api/bookmarks`
+- `gestureModels` — per-user custom gesture training data (JSONB landmarks) synced via `/api/gestures`
 
 Analytics endpoints may return mock data when no real biometric logs exist yet.
 
@@ -136,3 +146,7 @@ Analytics endpoints may return mock data when no real biometric logs exist yet.
 - Audio files must be imported through Vite (not direct URLs) for correct MIME types and Safari compatibility; use `.m4a` format for Apple devices
 - CORS `allowedOrigins` array lives in `server/src/index.ts` and must include both production domains and `localhost:5173`
 - Content is bilingual: Kazakh (`kz`) and Russian (`ru`)
+- Dark mode uses `darkMode: 'class'` in Tailwind; CSS variables defined in `globals.css` under `:root` (light) and `.dark` (dark); `themeStore.ts` toggles the class on `document.documentElement` and persists to `localStorage` under key `feelflow-theme`
+- `drizzle-kit` may fail with `bad interpreter` error on some systems — use `node node_modules/drizzle-kit/bin.cjs push` as a fallback
+- Sleep/drowsiness alarm uses `play()`/`pause()` (not volume toggling) for iOS Safari compatibility; threshold is 20 consecutive seconds of drowsy state
+- `GlobalBiometrics.tsx` uses `useRef` to track `isSleeping` state inside animation loops to avoid stale closure issues

@@ -67,7 +67,7 @@ emolearn-ai/
 │       └── store/       # Zustand stores (userStore, biometricStore, lessonStore, themeStore)
 ├── server/          # Express + Socket.IO + Drizzle ORM
 │   └── src/
-│       ├── routes/      # 10 Express routers under /api/*
+│       ├── routes/      # 12 Express routers under /api/*
 │       ├── db/          # schema.ts + index.ts (Neon connection)
 │       ├── services/    # OpenAI, Telegram, predictions
 │       ├── socket/      # Socket.IO event handlers (handlers.ts)
