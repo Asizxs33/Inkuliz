@@ -160,14 +160,14 @@ export class GestureML {
   }
 
   // Merge server sequences (server is source of truth)
-  public async syncFromServer(overrideUserId?: string): Promise<void> {
+  public async syncFromServer(overrideUserId?: string): Promise<{ count: number; error: string | null }> {
     const uid = overrideUserId || this.userId
     if (uid) this.userId = uid
     try {
       const res = await fetch(`${API_BASE}/api/gestures/all`)
-      if (!res.ok) return
+      if (!res.ok) return { count: 0, error: `HTTP ${res.status}` }
       const { sequences } = await res.json()
-      if (!sequences?.length) return
+      if (!sequences?.length) return { count: 0, error: null }
 
       const serverExamples: MLTrainingSequence[] = sequences.map((row: any) => ({
         wordKz: row.word_kz,
@@ -177,9 +177,10 @@ export class GestureML {
 
       this.examples = serverExamples
       this.saveToLocalStorage()
-      console.log(`[ML] Synced ${serverExamples.length} examples from server (all users)`)
+      return { count: serverExamples.length, error: null }
     } catch (e) {
-      console.warn('[ML] Server sync failed, using localStorage', e)
+      const msg = e instanceof Error ? e.message : String(e)
+      return { count: 0, error: msg }
     }
   }
 
