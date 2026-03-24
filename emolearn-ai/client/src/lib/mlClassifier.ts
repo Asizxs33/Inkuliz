@@ -160,7 +160,7 @@ export class GestureML {
   }
 
   // Merge server sequences (server is source of truth)
-  async syncFromServer() {
+  public async syncFromServer() {
     if (!this.userId) return
     try {
       const res = await fetch(`${API_BASE}/api/gestures/${this.userId}`)

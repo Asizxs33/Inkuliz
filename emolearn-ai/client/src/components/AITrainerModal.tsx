@@ -16,7 +16,8 @@ export default function AITrainerModal({ onClose }: Props) {
   const [progress, setProgress] = useState(0)
   const [trainedCount, setTrainedCount] = useState(0)
   const [saveError, setSaveError] = useState(false)
-  
+  const [isSyncing, setIsSyncing] = useState(true)
+
   const { handLandmarks, isCameraEnabled } = useBiometricStore()
   const latestLandmarksRef = useRef<Landmark[][] | null>(null)
 
@@ -28,9 +29,19 @@ export default function AITrainerModal({ onClose }: Props) {
     }
   }, [handLandmarks])
 
+  // On mount: sync from server first, then read counts
   useEffect(() => {
-    setTrainedCount(ML_CLASSIFIER.getCounts()[selectedWord] || 0)
-  }, [selectedWord])
+    ML_CLASSIFIER.syncFromServer().finally(() => {
+      setIsSyncing(false)
+      setTrainedCount(ML_CLASSIFIER.getCounts()[selectedWord] || 0)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!isSyncing) {
+      setTrainedCount(ML_CLASSIFIER.getCounts()[selectedWord] || 0)
+    }
+  }, [selectedWord, isSyncing])
 
   const handleTrainStart = () => {
     if (!isCameraEnabled) return
@@ -115,7 +126,9 @@ export default function AITrainerModal({ onClose }: Props) {
                  <p className="text-sm font-bold text-white">Видео-тізбектер</p>
                  <p className="text-xs text-success">ML Model: Dynamic Time Warping</p>
               </div>
-              <div className="text-3xl font-black text-plum relative z-10">{trainedCount}</div>
+              <div className="text-3xl font-black text-plum relative z-10">
+                {isSyncing ? <div className="w-6 h-6 border-2 border-plum/40 border-t-plum rounded-full animate-spin" /> : trainedCount}
+              </div>
            </div>
 
            {!isCameraEnabled && (
