@@ -18,7 +18,6 @@ export default function AITrainerModal({ onClose }: Props) {
   const [trainedCount, setTrainedCount] = useState(0)
   const [saveError, setSaveError] = useState(false)
   const [isSyncing, setIsSyncing] = useState(true)
-  const [syncDebug, setSyncDebug] = useState<{ uid: string | null; count: number; error: string | null } | null>(null)
 
   const { handLandmarks, isCameraEnabled } = useBiometricStore()
   const { id: userId } = useUserStore()
@@ -34,8 +33,7 @@ export default function AITrainerModal({ onClose }: Props) {
 
   // On mount: sync from server first (pass userId directly to avoid race condition), then read counts
   useEffect(() => {
-    ML_CLASSIFIER.syncFromServer(userId || undefined).then((debug) => {
-      setSyncDebug(debug)
+    ML_CLASSIFIER.syncFromServer(userId || undefined).then(() => {
       setIsSyncing(false)
       setTrainedCount(ML_CLASSIFIER.getCounts()[selectedWord] || 0)
     })
@@ -129,6 +127,10 @@ export default function AITrainerModal({ onClose }: Props) {
               <div className="relative z-10">
                  <p className="text-sm font-bold text-white">Видео-тізбектер</p>
                  <p className="text-xs text-success">ML Model: Dynamic Time Warping</p>
+                 {!isSyncing && (() => {
+                   const total = Object.values(ML_CLASSIFIER.getCounts()).reduce((a, b) => a + b, 0)
+                   return total > 0 ? <p className="text-xs text-white/40 mt-0.5">Барлығы: {total} жест</p> : null
+                 })()}
               </div>
               <div className="text-3xl font-black text-plum relative z-10">
                 {isSyncing ? <div className="w-6 h-6 border-2 border-plum/40 border-t-plum rounded-full animate-spin" /> : trainedCount}
@@ -140,11 +142,6 @@ export default function AITrainerModal({ onClose }: Props) {
            )}
            {saveError && (
               <p className="text-xs text-danger font-bold text-center bg-danger/10 py-2 rounded-lg">Сервер қатесі: жест сақталмады</p>
-           )}
-           {syncDebug && (
-             <div className="text-[10px] text-white/40 bg-white/5 rounded-lg px-3 py-2 font-mono break-all">
-               uid: {syncDebug.uid?.slice(0, 8) ?? 'null'} | server: {syncDebug.count} | err: {syncDebug.error ?? '—'}
-             </div>
            )}
 
            <div className="flex gap-2 pt-4">
