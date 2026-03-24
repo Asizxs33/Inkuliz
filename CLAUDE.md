@@ -15,6 +15,7 @@ All commands must be run from the correct subdirectory.
 ### Client (`emolearn-ai/client`)
 ```bash
 cd emolearn-ai/client
+npm install
 npm run dev      # Vite dev server on port 5173
 npm run build    # tsc -b && vite build
 npm run preview  # Preview production build
@@ -23,6 +24,7 @@ npm run preview  # Preview production build
 ### Server (`emolearn-ai/server`)
 ```bash
 cd emolearn-ai/server
+npm install
 npm run dev      # tsx watch src/index.ts (hot reload) on port 3001
 npm run build    # tsc → dist/
 npm start        # node dist/index.js
@@ -36,6 +38,8 @@ cd emolearn-ai/server
 npx drizzle-kit generate   # Generate migration from schema changes
 npx drizzle-kit push       # Push schema directly to DB (dev only)
 npx drizzle-kit studio     # Visual DB browser
+# Fallback if drizzle-kit fails with "bad interpreter":
+node node_modules/drizzle-kit/bin.cjs push
 ```
 
 There are **no automated tests** in this project.
@@ -77,18 +81,24 @@ emolearn-ai/
 
 ### Routing & Auth
 
-- `App.tsx` wraps protected routes in `ProtectedLayout`
+- `App.tsx` wraps all protected routes individually in `ProtectedLayout`
 - `ProtectedLayout` checks `isLoggedIn` from `userStore`; mounts `GlobalBiometrics` only for the `student` role
 - `RoleRedirect` at `/` sends students to `/dashboard`, teachers to `/teacher`
-- Roles: `student` (default) and `teacher` — no strict route guards beyond the role redirect
-- Auth state persisted in Zustand + `localStorage` (key: `emolearn-user-storage`)
+- Roles: `student` (default) and `teacher` — no route guards beyond the role redirect; teachers can technically access student routes
+- Auth state stored in Zustand + `localStorage` via `persist` middleware (key: `emolearn-user-storage`)
 - JWT tokens are 7-day, sent as `Authorization: Bearer <token>`
 
 ### Adding a New Server Route
 
 1. Create `server/src/routes/<name>.ts` exporting a named `<name>Router`
 2. Import and register in `server/src/index.ts`: `app.use('/api/<name>', <name>Router)`
-3. If the route needs CORS from a new origin, add to `allowedOrigins` in `index.ts`
+3. If the route needs CORS from a new origin, add to the `allowedOrigins` array in `index.ts`
+
+To emit Socket.IO events from inside a route handler, use `getIo()` from `server/src/io.ts` — a singleton accessor set up at startup so routes don't need `io` passed in directly.
+
+`GET /api/health` returns `{ status: 'ok', timestamp }` — useful for uptime checks.
+
+The request body limit is `5mb` (set in `index.ts`) to accommodate landmark JSONB payloads.
 
 ### Real-time (Socket.IO)
 
@@ -121,7 +131,7 @@ Schema in `server/src/db/schema.ts`. All IDs are UUIDs. Key tables:
 - `classStudents` — M2M between `classes` and `users`
 - `biometricSessions` → `emotionLogs` — per-session aggregates and per-timestamp emotion/BPM/cognitive rows
 - `studentProgress` → `lessons` + `users` — tracks completion, score, time_spent
-- `signWords` — Kazakh/Russian word pairs with `landmarks` JSONB for gesture matching
+- `signWords` — Kazakh/Russian word pairs with `landmarks` JSONB for gesture matching, `image_url`, category, difficulty
 - `alerts` — link teacher and student for drowsiness/stress notifications
 - `tests` / `testResults` — teacher-created tests with JSONB questions; student answers auto-scored; `teacher_comment` column for per-result feedback
 - `assignments` — links a test to a class with a deadline; students see assigned tests with overdue detection
@@ -146,6 +156,5 @@ Analytics endpoints may return mock data when no real biometric logs exist yet.
 - CORS `allowedOrigins` in `server/src/index.ts` must include both production domains and `localhost:5173`
 - Content is bilingual: Kazakh (`kz`) and Russian (`ru`)
 - Dark mode uses `darkMode: 'class'` in Tailwind; CSS variables defined in `globals.css` under `:root` (light) and `.dark` (dark); `themeStore.ts` toggles the class on `document.documentElement` and persists to `localStorage` under key `feelflow-theme`
-- `drizzle-kit` may fail with `bad interpreter` error on some systems — use `node node_modules/drizzle-kit/bin.cjs push` as a fallback
 - Sleep/drowsiness alarm uses `play()`/`pause()` (not volume toggling) for iOS Safari compatibility; threshold is 20 consecutive seconds of drowsy state
 - `GlobalBiometrics.tsx` uses `useRef` to track `isSleeping` state inside animation loops to avoid stale closure issues
